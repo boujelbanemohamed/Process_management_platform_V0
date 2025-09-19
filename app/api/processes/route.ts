@@ -27,10 +27,18 @@ export async function POST(request: NextRequest) {
   try {
     const { name, description, category, status, createdBy, tags } = await request.json()
 
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    }
+
     const sql = getSql()
+    
+    // Utiliser l'ID 1 par défaut si createdBy n'est pas fourni
+    const userId = createdBy || 1
+    
     const result = await sql`
       INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES (${name}, ${description}, ${category}, ${status}, ${createdBy}, ${JSON.stringify(tags)})
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${JSON.stringify(tags || [])})
       RETURNING *
     `
 

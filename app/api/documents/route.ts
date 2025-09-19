@@ -54,15 +54,18 @@ export async function POST(request: NextRequest) {
   try {
     const { name, type, size, version, uploadedBy, processId, url } = await request.json()
     
-    if (!name || !uploadedBy) {
-      return NextResponse.json({ error: "Name and uploadedBy are required" }, { status: 400 })
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
     
     const sql = getSql()
     
+    // Utiliser l'ID 1 par défaut si uploadedBy n'est pas fourni
+    const userId = uploadedBy || 1
+    
     const result = await sql`
       INSERT INTO documents (name, type, size, version, uploaded_by, process_id, url)
-      VALUES (${name}, ${type || null}, ${size || null}, ${version || null}, ${uploadedBy}, ${processId || null}, ${url || null})
+      VALUES (${name}, ${type || null}, ${size || null}, ${version || null}, ${userId}, ${processId || null}, ${url || null})
       RETURNING id, name, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
     

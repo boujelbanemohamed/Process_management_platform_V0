@@ -59,15 +59,18 @@ export async function POST(request: NextRequest) {
   try {
     const { name, description, type, filters, data, createdBy, isPublic, tags } = await request.json()
     
-    if (!name || !type || !createdBy) {
-      return NextResponse.json({ error: "Name, type, and createdBy are required" }, { status: 400 })
+    if (!name || !type) {
+      return NextResponse.json({ error: "Name and type are required" }, { status: 400 })
     }
     
     const sql = getSql()
     
+    // Utiliser l'ID 1 par défaut si createdBy n'est pas fourni
+    const userId = createdBy || 1
+    
     const result = await sql`
       INSERT INTO reports (name, description, type, filters, data, created_by, is_public, tags)
-      VALUES (${name}, ${description || ''}, ${type}, ${JSON.stringify(filters || {})}, ${JSON.stringify(data || {})}, ${createdBy}, ${isPublic || false}, ${JSON.stringify(tags || [])})
+      VALUES (${name}, ${description || ''}, ${type}, ${JSON.stringify(filters || {})}, ${JSON.stringify(data || {})}, ${userId}, ${isPublic || false}, ${JSON.stringify(tags || [])})
       RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
     `
     
