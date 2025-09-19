@@ -109,10 +109,12 @@ export function UserManagement() {
           password: newUser.sendInvitation ? undefined : newUser.password,
         }),
       })
+      
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err?.error || "Erreur serveur")
+        throw new Error(err?.error || `Erreur serveur: ${response.status}`)
       }
+      
       const created = await response.json()
       const user: User = {
         id: String(created.id ?? Date.now()),
@@ -123,6 +125,7 @@ export function UserManagement() {
       }
       setUsers((prev) => [...prev, user])
     } catch (err: any) {
+      console.error("Erreur création utilisateur:", err)
       alert(`Erreur lors de la création: ${err.message || err}`)
       return
     }
