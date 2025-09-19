@@ -28,7 +28,16 @@ export function ProcessList() {
           throw new Error('Erreur lors du chargement des processus')
         }
         const data = await response.json()
-        setProcesses(data)
+        // S'assurer que chaque processus a des propriétés valides
+        const safeData = Array.isArray(data) ? data.map(process => ({
+          ...process,
+          tags: process.tags || [],
+          documents: process.documents || [],
+          category: process.category || '',
+          description: process.description || '',
+          updated_at: process.updated_at || process.created_at
+        })) : []
+        setProcesses(safeData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue')
         console.error('Error fetching processes:', err)
@@ -188,7 +197,7 @@ export function ProcessList() {
                   <p className="text-sm text-slate-500">Modifié le {process.updated_at ? new Date(process.updated_at).toLocaleDateString('fr-FR') : 'Date inconnue'}</p>
                 </div>
 
-                {process.tags.length > 0 && (
+                {process.tags && process.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {process.tags.slice(0, 3).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
