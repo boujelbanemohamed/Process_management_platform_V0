@@ -52,7 +52,21 @@ export async function POST(request: NextRequest) {
       RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
     `, [name, description || '', category || '', status || 'draft', userId, tagsSql])
 
-    return NextResponse.json(result[0], { status: 201 })
+    // S'assurer que le résultat est sérialisable
+    const process = result[0]
+    const serializableProcess = {
+      id: process.id,
+      name: process.name,
+      description: process.description,
+      category: process.category,
+      status: process.status,
+      created_by: process.created_by,
+      created_at: process.created_at,
+      updated_at: process.updated_at,
+      tags: process.tags || []
+    }
+
+    return NextResponse.json(serializableProcess, { status: 201 })
   } catch (error) {
     console.error("Error creating process:", error)
     console.error("Error details:", error.message)

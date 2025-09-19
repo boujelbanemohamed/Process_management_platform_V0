@@ -185,7 +185,7 @@ export function ProcessList() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-slate-600">Catégorie: {process.category}</p>
-                  <p className="text-sm text-slate-500">Modifié le {process.updatedAt.toLocaleDateString()}</p>
+                  <p className="text-sm text-slate-500">Modifié le {process.updated_at ? new Date(process.updated_at).toLocaleDateString('fr-FR') : 'Date inconnue'}</p>
                 </div>
 
                 {process.tags.length > 0 && (
@@ -204,7 +204,7 @@ export function ProcessList() {
                 )}
 
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-sm text-slate-500">{process.documents.length} document(s)</span>
+                  <span className="text-sm text-slate-500">{process.documents?.length || 0} document(s)</span>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => handleView(process.id)}>
                       <Eye className="h-4 w-4" />
