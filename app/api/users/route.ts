@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase()
+
     let passwordHash: string | null = null
     if (password && typeof password === "string") {
       if (password.length < 8) {
@@ -42,13 +44,17 @@ export async function POST(request: NextRequest) {
     const sql = getSql()
     const result = await sql`
       INSERT INTO users (name, email, role, password_hash, avatar)
-      VALUES (${name}, ${email}, ${role}, ${passwordHash}, '/professional-avatar.png')
+      VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
       RETURNING id, name, email, role, avatar, created_at, updated_at
     `
 
     return NextResponse.json(result[0], { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating user:", error)
+    // Gestion explicite du doublon d'email (Postgres unique_violation)
+    if (error && (error.code === "23505" || /duplicate key value/i.test(String(error.message)))) {
+      return NextResponse.json({ error: "Email already exists" }, { status: 409 })
+    }
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
   }
 }
