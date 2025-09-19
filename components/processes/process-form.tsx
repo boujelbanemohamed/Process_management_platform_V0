@@ -21,15 +21,44 @@ interface ProcessFormProps {
 
 export function ProcessForm({ processId, mode }: ProcessFormProps) {
   const router = useRouter()
-  const existingProcess = processId ? mockProcesses.find((p) => p.id === processId) : null
+  const [existingProcess, setExistingProcess] = useState<Process | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: existingProcess?.name || "",
-    description: existingProcess?.description || "",
-    category: existingProcess?.category || "",
-    status: existingProcess?.status || ("draft" as Process["status"]),
-    tags: existingProcess?.tags || [],
+    name: "",
+    description: "",
+    category: "",
+    status: "draft" as Process["status"],
+    tags: [] as string[],
   })
+
+  // Charger le processus existant si en mode édition
+  useEffect(() => {
+    if (processId && mode === "edit") {
+      const fetchProcess = async () => {
+        try {
+          setLoading(true)
+          const response = await fetch(`/api/processes?id=${processId}`)
+          if (response.ok) {
+            const process = await response.json()
+            setExistingProcess(process)
+            setFormData({
+              name: process.name || "",
+              description: process.description || "",
+              category: process.category || "",
+              status: process.status || "draft",
+              tags: process.tags || [],
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching process:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchProcess()
+    }
+  }, [processId, mode])
 
   const [newTag, setNewTag] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,14 +78,29 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // TODO: Implement actual save functionality
-    console.log("[v0] Saving process:", formData)
+    try {
+      const url = mode === "create" ? "/api/processes" : `/api/processes?id=${processId}`
+      const method = mode === "create" ? "POST" : "PUT"
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        throw new Error('Erreur lors de la sauvegarde du processus')
+      }
 
-    setIsSubmitting(false)
-    router.push("/processes")
+      router.push("/processes")
+    } catch (error) {
+      console.error('Error saving process:', error)
+      alert('Erreur lors de la sauvegarde du processus')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const addTag = () => {

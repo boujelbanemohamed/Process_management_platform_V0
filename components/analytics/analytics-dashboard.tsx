@@ -36,11 +36,61 @@ export function AnalyticsDashboard() {
     try {
       setIsLoading(true)
       setError(null)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      const analyticsData = AnalyticsService.getAnalyticsData(selectedPeriod)
+      
+      // Charger les données depuis les APIs
+      const [processesRes, documentsRes, usersRes, reportsRes] = await Promise.all([
+        fetch('/api/processes'),
+        fetch('/api/documents'),
+        fetch('/api/users'),
+        fetch('/api/reports')
+      ])
+      
+      const [processes, documents, users, reports] = await Promise.all([
+        processesRes.json(),
+        documentsRes.json(),
+        usersRes.json(),
+        reportsRes.json()
+      ])
+      
+      // Calculer les statistiques
+      const analyticsData: AnalyticsData = {
+        overview: {
+          totalProcesses: processes.length,
+          totalDocuments: documents.length,
+          totalUsers: users.length,
+          totalReports: reports.length,
+        },
+        processStats: {
+          byStatus: processes.reduce((acc: any, p: any) => {
+            acc[p.status] = (acc[p.status] || 0) + 1
+            return acc
+          }, {}),
+          byCategory: processes.reduce((acc: any, p: any) => {
+            acc[p.category] = (acc[p.category] || 0) + 1
+            return acc
+          }, {}),
+        },
+        documentStats: {
+          byType: documents.reduce((acc: any, d: any) => {
+            acc[d.type] = (acc[d.type] || 0) + 1
+            return acc
+          }, {}),
+          totalSize: documents.reduce((sum: number, d: any) => sum + (d.size || 0), 0),
+        },
+        userStats: {
+          byRole: users.reduce((acc: any, u: any) => {
+            acc[u.role] = (acc[u.role] || 0) + 1
+            return acc
+          }, {}),
+        },
+        activityData: [], // TODO: Implémenter avec les logs d'accès
+        trendsData: [], // TODO: Implémenter avec les données temporelles
+      }
+      
       setData(analyticsData)
     } catch (err) {
       setError("Erreur lors du chargement des données analytiques")
+      console.error('Error loading analytics:', err)
     } finally {
       setIsLoading(false)
     }

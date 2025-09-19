@@ -1,21 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { mockDocuments, mockProcesses } from "@/lib/data"
 import { AuthService } from "@/lib/auth"
-import { Search, Upload, Download, Eye, Edit, Trash2, FileText, File, ImageIcon } from "lucide-react"
+import { Search, Upload, Download, Eye, Edit, Trash2, FileText, File, ImageIcon, Loader2 } from "lucide-react"
 import type { Document } from "@/types"
 
 export function DocumentList() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("all")
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Charger les documents depuis l'API
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/documents')
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des documents')
+        }
+        const data = await response.json()
+        setDocuments(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+        console.error('Error fetching documents:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDocuments()
+  }, [])
 
   const canWrite = AuthService.hasPermission("write")
   const canAdmin = AuthService.hasPermission("admin")
@@ -27,6 +50,26 @@ export function DocumentList() {
     const matchesType = selectedType === "all" || document.type === selectedType
     return matchesSearch && matchesType
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Chargement des documents...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Erreur: {error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Réessayer
+        </Button>
+      </div>
+    )
+  }
 
   const getFileIcon = (type: string) => {
     switch (type.toLowerCase()) {

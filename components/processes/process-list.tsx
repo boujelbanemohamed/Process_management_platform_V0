@@ -1,21 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { mockProcesses } from "@/lib/data"
 import { AuthService } from "@/lib/auth"
-import { Search, Plus, Filter, Eye, Edit, Archive } from "lucide-react"
+import { Search, Plus, Filter, Eye, Edit, Archive, Loader2 } from "lucide-react"
 import type { Process } from "@/types"
 
 export function ProcessList() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [processes] = useState<Process[]>(mockProcesses)
+  const [processes, setProcesses] = useState<Process[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Charger les processus depuis l'API
+  useEffect(() => {
+    const fetchProcesses = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/processes')
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des processus')
+        }
+        const data = await response.json()
+        setProcesses(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+        console.error('Error fetching processes:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProcesses()
+  }, [])
 
   const canWrite = AuthService.hasPermission("write")
   const canAdmin = AuthService.hasPermission("admin")
@@ -25,10 +48,30 @@ export function ProcessList() {
   const filteredProcesses = processes.filter((process) => {
     const matchesSearch =
       process.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      process.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (process.description && process.description.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesCategory = selectedCategory === "all" || process.category === selectedCategory
     return matchesSearch && matchesCategory
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Chargement des processus...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Erreur: {error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Réessayer
+        </Button>
+      </div>
+    )
+  }
 
   const getStatusColor = (status: Process["status"]) => {
     switch (status) {

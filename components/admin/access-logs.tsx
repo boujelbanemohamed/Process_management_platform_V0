@@ -1,86 +1,72 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Activity, CheckCircle, XCircle, Clock } from "lucide-react"
-
-// Mock access logs
-const mockLogs = [
-  {
-    id: "1",
-    userId: "1",
-    userName: "Admin User",
-    action: "create",
-    resource: "process",
-    resourceId: "proc-001",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    success: true,
-    details: "Création du processus 'Nouveau processus RH'",
-  },
-  {
-    id: "2",
-    userId: "2",
-    userName: "John Contributor",
-    action: "upload",
-    resource: "document",
-    resourceId: "doc-001",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    success: true,
-    details: "Upload du document 'Guide_Formation.pdf'",
-  },
-  {
-    id: "3",
-    userId: "3",
-    userName: "Jane Reader",
-    action: "delete",
-    resource: "process",
-    resourceId: "proc-002",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-    success: false,
-    details: "Tentative de suppression non autorisée",
-  },
-  {
-    id: "4",
-    userId: "1",
-    userName: "Admin User",
-    action: "edit",
-    resource: "user",
-    resourceId: "user-004",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
-    success: true,
-    details: "Modification du rôle utilisateur",
-  },
-  {
-    id: "5",
-    userId: "2",
-    userName: "John Contributor",
-    action: "read",
-    resource: "analytics",
-    resourceId: "dashboard",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
-    success: true,
-    details: "Consultation du tableau de bord",
-  },
-]
+import { Search, Activity, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react"
 
 export function AccessLogs() {
-  const [logs] = useState(mockLogs)
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Charger les logs depuis l'API
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/access-logs')
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des logs')
+        }
+        const data = await response.json()
+        setLogs(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+        console.error('Error fetching logs:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLogs()
+  }, [])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
-      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.resource.toLowerCase().includes(searchTerm.toLowerCase())
+      log.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.resource?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.details?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus =
       selectedStatus === "all" ||
       (selectedStatus === "success" && log.success) ||
       (selectedStatus === "failed" && !log.success)
     return matchesSearch && matchesStatus
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Chargement des logs...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Erreur: {error}</p>
+        <button onClick={() => window.location.reload()}>
+          Réessayer
+        </button>
+      </div>
+    )
+  }
 
   const getActionColor = (action: string) => {
     switch (action) {
@@ -223,7 +209,7 @@ export function AccessLogs() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600">Dernière activité</p>
-                <p className="text-sm font-medium text-slate-800">{formatTimestamp(logs[0]?.timestamp)}</p>
+                <p className="text-sm font-medium text-slate-800">{logs[0] ? formatTimestamp(new Date(logs[0].created_at)) : 'Aucune activité'}</p>
               </div>
               <Clock className="h-8 w-8 text-slate-400" />
             </div>
@@ -254,16 +240,16 @@ export function AccessLogs() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-slate-800">{log.userName}</span>
+                      <span className="font-medium text-slate-800">{log.user_name || 'Utilisateur inconnu'}</span>
                       <Badge className={getActionColor(log.action)}>{getActionLabel(log.action)}</Badge>
                       <span className="text-slate-600">{getResourceLabel(log.resource)}</span>
                     </div>
-                    <p className="text-sm text-slate-500">{log.details}</p>
+                    <p className="text-sm text-slate-500">{log.details || 'Aucun détail'}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-slate-500">{formatTimestamp(log.timestamp)}</p>
-                  <p className="text-xs text-slate-400">{log.timestamp.toLocaleTimeString()}</p>
+                  <p className="text-sm text-slate-500">{formatTimestamp(new Date(log.created_at))}</p>
+                  <p className="text-xs text-slate-400">{new Date(log.created_at).toLocaleTimeString()}</p>
                 </div>
               </div>
             ))}
