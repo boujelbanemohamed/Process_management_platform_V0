@@ -77,6 +77,7 @@ export function UserManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("🚀 handleCreateUser called", newUser)
 
     if (!newUser.name.trim() || !newUser.email.trim()) {
       alert("Veuillez remplir tous les champs obligatoires")
@@ -98,6 +99,7 @@ export function UserManagement() {
       return
     }
 
+    console.log("📤 Sending API request...")
     try {
       const response = await fetch("/api/users", {
         method: "POST",
@@ -109,6 +111,7 @@ export function UserManagement() {
           password: newUser.sendInvitation ? undefined : newUser.password,
         }),
       })
+      console.log("📥 API response:", response.status, response.ok)
       
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
