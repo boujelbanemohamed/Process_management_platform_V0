@@ -109,7 +109,114 @@ export async function initializeDatabase() {
       )
     `)
 
-    console.log("Database tables initialized successfully")
+    // Create permissions system tables
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS permissions (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        resource VARCHAR(100) NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(resource, action)
+      )
+    `)
+
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        is_system BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS role_permissions (
+        id SERIAL PRIMARY KEY,
+        role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(role_id, permission_id)
+      )
+    `)
+
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS user_permissions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+        granted BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, permission_id)
+      )
+    `)
+
+    // Insert default permissions
+    await DatabaseService.query(`
+      INSERT INTO permissions (name, description, resource, action) VALUES
+      ('users.read', 'Lire les informations des utilisateurs', 'users', 'read'),
+      ('users.create', 'Créer de nouveaux utilisateurs', 'users', 'create'),
+      ('users.update', 'Modifier les informations des utilisateurs', 'users', 'update'),
+      ('users.delete', 'Supprimer des utilisateurs', 'users', 'delete'),
+      ('processes.read', 'Lire les processus', 'processes', 'read'),
+      ('processes.create', 'Créer de nouveaux processus', 'processes', 'create'),
+      ('processes.update', 'Modifier les processus', 'processes', 'update'),
+      ('processes.delete', 'Supprimer des processus', 'processes', 'delete'),
+      ('documents.read', 'Lire les documents', 'documents', 'read'),
+      ('documents.create', 'Créer de nouveaux documents', 'documents', 'create'),
+      ('documents.update', 'Modifier les documents', 'documents', 'update'),
+      ('documents.delete', 'Supprimer des documents', 'documents', 'delete'),
+      ('settings.read', 'Accéder aux paramètres', 'settings', 'read'),
+      ('settings.update', 'Modifier les paramètres', 'settings', 'update'),
+      ('analytics.read', 'Voir les analyses', 'analytics', 'read'),
+      ('reports.generate', 'Générer des rapports', 'reports', 'generate')
+      ON CONFLICT (resource, action) DO NOTHING
+    `)
+
+    // Insert default roles
+    await DatabaseService.query(`
+      INSERT INTO roles (name, description, is_system) VALUES
+      ('admin', 'Administrateur avec tous les droits', TRUE),
+      ('contributor', 'Contributeur avec droits de création et modification', TRUE),
+      ('reader', 'Lecteur avec droits de lecture uniquement', TRUE)
+      ON CONFLICT (name) DO NOTHING
+    `)
+
+    // Assign permissions to roles
+    // Admin gets all permissions
+    await DatabaseService.query(`
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id
+      FROM roles r, permissions p
+      WHERE r.name = 'admin'
+      ON CONFLICT (role_id, permission_id) DO NOTHING
+    `)
+
+    // Contributor gets read, create, update permissions (no delete)
+    await DatabaseService.query(`
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id
+      FROM roles r, permissions p
+      WHERE r.name = 'contributor'
+      AND p.action IN ('read', 'create', 'update')
+      ON CONFLICT (role_id, permission_id) DO NOTHING
+    `)
+
+    // Reader gets only read permissions
+    await DatabaseService.query(`
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id
+      FROM roles r, permissions p
+      WHERE r.name = 'reader'
+      AND p.action = 'read'
+      ON CONFLICT (role_id, permission_id) DO NOTHING
+    `)
+
+    console.log("Database tables and permissions system initialized successfully")
   } catch (error) {
     console.error("Database initialization failed:", error)
     throw error
