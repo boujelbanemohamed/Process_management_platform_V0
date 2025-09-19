@@ -74,11 +74,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    const result = await sql`
+    // Utiliser une requête SQL brute pour les tableaux PostgreSQL
+    const tagsArray = tags && Array.isArray(tags) ? tags : []
+    const tagsSql = `{${tagsArray.map(tag => `"${tag}"`).join(',')}}`
+    
+    const result = await sql.unsafe(`
       INSERT INTO reports (name, description, type, filters, data, created_by, is_public, tags)
-      VALUES (${name}, ${description || ''}, ${type}, ${filters || {}}, ${data || {}}, ${userId}, ${isPublic || false}, ${tags || []})
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
-    `
+    `, [name, description || '', type, JSON.stringify(filters || {}), JSON.stringify(data || {}), userId, isPublic || false, tagsSql])
     
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {

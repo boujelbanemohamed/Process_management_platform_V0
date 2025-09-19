@@ -42,11 +42,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    const result = await sql`
+    // Utiliser une requête SQL brute pour les tableaux PostgreSQL
+    const tagsArray = tags && Array.isArray(tags) ? tags : []
+    const tagsSql = `{${tagsArray.map(tag => `"${tag}"`).join(',')}}`
+    
+    const result = await sql.unsafe(`
       INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tags || []})
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
-    `
+    `, [name, description || '', category || '', status || 'draft', userId, tagsSql])
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {

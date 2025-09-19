@@ -66,11 +66,11 @@ export async function POST(request: NextRequest) {
     
     if (processExists.length === 0) {
       // Créer un processus par défaut si aucun n'existe
-      const defaultProcess = await sql`
+      const defaultProcess = await sql.unsafe(`
         INSERT INTO processes (name, description, category, status, created_by, tags)
-        VALUES ('Processus par défaut', 'Processus créé automatiquement pour les relations', 'default', 'active', 1, ${[]})
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id
-      `
+      `, ['Processus par défaut', 'Processus créé automatiquement pour les relations', 'default', 'active', 1, '{}'])
       const actualProcessId = defaultProcess[0].id
       
       const result = await sql`
