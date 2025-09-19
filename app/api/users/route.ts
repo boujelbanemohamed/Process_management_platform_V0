@@ -118,6 +118,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result[0])
     }
 
+    // Si c'est une mise à jour d'utilisateur
+    if (action === 'update-user') {
+      const { userId: updateUserId, name, email, role } = body
+      
+      if (!updateUserId) {
+        return NextResponse.json({ error: "User ID required" }, { status: 400 })
+      }
+
+      const sql = getSql()
+      const result = await sql`
+        UPDATE users 
+        SET name = ${name || ''}, email = ${email || ''}, role = ${role || ''}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${updateUserId}
+        RETURNING id, name, email, role, avatar, created_at, updated_at
+      `
+
+      if (result.length === 0) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      return NextResponse.json(result[0])
+    }
+
+    // Si c'est une suppression d'utilisateur
+    if (action === 'delete-user') {
+      const { userId: deleteUserId } = body
+      
+      if (!deleteUserId) {
+        return NextResponse.json({ error: "User ID required" }, { status: 400 })
+      }
+
+      const sql = getSql()
+      const result = await sql`
+        DELETE FROM users 
+        WHERE id = ${deleteUserId}
+        RETURNING id, name, email
+      `
+
+      if (result.length === 0) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ success: true, deletedUser: result[0] })
+    }
+
     // Sinon, création d'utilisateur
     if (!name || !email || !role) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })

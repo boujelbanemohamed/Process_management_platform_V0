@@ -29,6 +29,11 @@ export function UserManagement() {
   const [selectedRole, setSelectedRole] = useState("all")
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [showRoleChangeDialog, setShowRoleChangeDialog] = useState(false)
+  const [selectedUserForRole, setSelectedUserForRole] = useState<User | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [selectedUserForDelete, setSelectedUserForDelete] = useState<User | null>(null)
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -101,6 +106,131 @@ export function UserManagement() {
       password += chars.charAt(Math.floor(Math.random() * chars.length))
     }
     setNewUser((prev) => ({ ...prev, password, confirmPassword: password }))
+  }
+
+  // Fonction pour modifier un utilisateur
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setShowEditForm(true)
+  }
+
+  // Fonction pour sauvegarder les modifications
+  const handleSaveUser = async (updatedUser: User) => {
+    try {
+      console.log("💾 Sauvegarde utilisateur:", updatedUser)
+      
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-user",
+          userId: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error || `Erreur serveur: ${response.status}`)
+      }
+
+      const savedUser = await response.json()
+      console.log("✅ Utilisateur sauvegardé:", savedUser)
+
+      // Mettre à jour la liste des utilisateurs
+      setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? savedUser : u)))
+      setShowEditForm(false)
+      setEditingUser(null)
+      alert("Utilisateur modifié avec succès !")
+    } catch (err: any) {
+      console.error("❌ Erreur modification utilisateur:", err)
+      alert(`Erreur lors de la modification: ${err.message || err}`)
+    }
+  }
+
+  // Fonction pour changer le rôle
+  const handleChangeRole = (user: User) => {
+    setSelectedUserForRole(user)
+    setShowRoleChangeDialog(true)
+  }
+
+  // Fonction pour sauvegarder le changement de rôle
+  const handleSaveRoleChange = async (newRole: string) => {
+    if (!selectedUserForRole) return
+
+    try {
+      console.log("🔄 Changement de rôle:", selectedUserForRole.id, "->", newRole)
+      
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-role",
+          userId: selectedUserForRole.id,
+          newRole: newRole,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error || `Erreur serveur: ${response.status}`)
+      }
+
+      const updatedUser = await response.json()
+      console.log("✅ Rôle changé:", updatedUser)
+
+      // Mettre à jour la liste des utilisateurs
+      setUsers((prev) => prev.map((u) => (u.id === selectedUserForRole.id ? updatedUser : u)))
+      setShowRoleChangeDialog(false)
+      setSelectedUserForRole(null)
+      alert(`Rôle changé vers "${newRole}" avec succès !`)
+    } catch (err: any) {
+      console.error("❌ Erreur changement de rôle:", err)
+      alert(`Erreur lors du changement de rôle: ${err.message || err}`)
+    }
+  }
+
+  // Fonction pour supprimer un utilisateur
+  const handleDeleteUser = (user: User) => {
+    setSelectedUserForDelete(user)
+    setShowDeleteDialog(true)
+  }
+
+  // Fonction pour confirmer la suppression
+  const handleConfirmDelete = async () => {
+    if (!selectedUserForDelete) return
+
+    try {
+      console.log("🗑️ Suppression utilisateur:", selectedUserForDelete.id)
+      
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete-user",
+          userId: selectedUserForDelete.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error || `Erreur serveur: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("✅ Utilisateur supprimé:", result)
+
+      // Retirer l'utilisateur de la liste
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUserForDelete.id))
+      setShowDeleteDialog(false)
+      setSelectedUserForDelete(null)
+      alert("Utilisateur supprimé avec succès !")
+    } catch (err: any) {
+      console.error("❌ Erreur suppression utilisateur:", err)
+      alert(`Erreur lors de la suppression: ${err.message || err}`)
+    }
   }
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -430,14 +560,32 @@ export function UserManagement() {
                 </div>
                 {canManageUsers && (
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" onClick={() => setEditingUser(user)} title="Modifier">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleEditUser(user)} 
+                      title="Modifier le profil"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" title="Permissions">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleChangeRole(user)}
+                      title="Changer les permissions"
+                      className="text-purple-600 hover:text-purple-800"
+                    >
                       <Shield className="h-4 w-4" />
                     </Button>
                     {user.id !== currentUser?.id && (
-                      <Button variant="ghost" size="sm" title="Supprimer" className="text-red-500 hover:text-red-700">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDeleteUser(user)}
+                        title="Supprimer l'utilisateur" 
+                        className="text-red-500 hover:text-red-700"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -494,6 +642,160 @@ export function UserManagement() {
           )
         })}
       </div>
+
+      {/* Formulaire d'édition d'utilisateur */}
+      {showEditForm && editingUser && (
+        <Card className="border-slate-200 bg-slate-50">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-slate-800">Modifier l'utilisateur</CardTitle>
+              <CardDescription>Modifiez les informations de {editingUser.name}</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowEditForm(false)} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              const updatedUser: User = {
+                ...editingUser,
+                name: formData.get('name') as string,
+                email: formData.get('email') as string,
+                role: formData.get('role') as string,
+              }
+              handleSaveUser(updatedUser)
+            }} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Nom complet *</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    type="text"
+                    defaultValue={editingUser.name}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Adresse email *</Label>
+                  <Input
+                    id="edit-email"
+                    name="email"
+                    type="email"
+                    defaultValue={editingUser.email}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Rôle</Label>
+                <select
+                  id="edit-role"
+                  name="role"
+                  defaultValue={editingUser.role}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  {DEFAULT_ROLES.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name} - {role.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowEditForm(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" className="bg-slate-800 hover:bg-slate-700">
+                  Sauvegarder
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dialogue de changement de rôle */}
+      {showRoleChangeDialog && selectedUserForRole && (
+        <Card className="border-slate-200 bg-slate-50">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-slate-800">Changer le rôle</CardTitle>
+              <CardDescription>Modifiez le rôle de {selectedUserForRole.name}</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowRoleChangeDialog(false)} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role-select">Nouveau rôle</Label>
+                <select
+                  id="role-select"
+                  defaultValue={selectedUserForRole.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value
+                    handleSaveRoleChange(newRole)
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  {DEFAULT_ROLES.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name} - {role.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button variant="outline" onClick={() => setShowRoleChangeDialog(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dialogue de suppression */}
+      {showDeleteDialog && selectedUserForDelete && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-red-800">Supprimer l'utilisateur</CardTitle>
+              <CardDescription>
+                Êtes-vous sûr de vouloir supprimer {selectedUserForDelete.name} ? Cette action est irréversible.
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowDeleteDialog(false)} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-red-100 rounded-lg">
+                <p className="text-sm text-red-800">
+                  <strong>Attention :</strong> Cette action supprimera définitivement l'utilisateur et toutes ses données associées.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                  Annuler
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleConfirmDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Supprimer définitivement
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
