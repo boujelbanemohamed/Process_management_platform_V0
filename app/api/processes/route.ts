@@ -42,17 +42,22 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Utiliser une requête SQL brute pour les tableaux PostgreSQL
+    // Utiliser la syntaxe template literals de Neon pour éviter les problèmes de sérialisation
     const tagsArray = tags && Array.isArray(tags) ? tags : []
-    const tagsSql = `{${tagsArray.map(tag => `"${tag}"`).join(',')}}`
     
-    const result = await sql.unsafe(`
+    const result = await sql`
       INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tagsArray})
       RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
-    `, [name, description || '', category || '', status || 'draft', userId, tagsSql])
+    `
+    
+    console.log('SQL result:', result)
 
     // S'assurer que le résultat est sérialisable
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Failed to create process - no result returned" }, { status: 500 })
+    }
+    
     const process = result[0]
     const serializableProcess = {
       id: process.id,
