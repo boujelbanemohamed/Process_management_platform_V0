@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,7 +23,8 @@ const mockUsers: User[] = [
 ]
 
 export function UserManagement() {
-  const [users, setUsers] = useState<User[]>(mockUsers)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -39,6 +40,33 @@ export function UserManagement() {
 
   const currentUser = AuthService.getCurrentUser()
   const canManageUsers = currentUser?.role === "admin"
+
+  // Charger les utilisateurs depuis l'API
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        console.log("🔄 Chargement des utilisateurs...")
+        const response = await fetch("/api/users")
+        if (response.ok) {
+          const data = await response.json()
+          console.log("📥 Utilisateurs chargés:", data)
+          setUsers(data)
+        } else {
+          console.error("❌ Erreur chargement utilisateurs:", response.status)
+          // Fallback sur les données mockées en cas d'erreur
+          setUsers(mockUsers)
+        }
+      } catch (error) {
+        console.error("❌ Erreur chargement utilisateurs:", error)
+        // Fallback sur les données mockées en cas d'erreur
+        setUsers(mockUsers)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [])
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -119,14 +147,25 @@ export function UserManagement() {
       }
       
       const created = await response.json()
-      const user: User = {
-        id: String(created.id ?? Date.now()),
-        name: created.name ?? newUser.name.trim(),
-        email: created.email ?? newUser.email.trim().toLowerCase(),
-        role: created.role ?? newUser.role,
-        avatar: created.avatar,
+      console.log("✅ Utilisateur créé avec succès:", created)
+      
+      // Recharger la liste des utilisateurs
+      const refreshResponse = await fetch("/api/users")
+      if (refreshResponse.ok) {
+        const updatedUsers = await refreshResponse.json()
+        setUsers(updatedUsers)
+        console.log("🔄 Liste des utilisateurs mise à jour:", updatedUsers)
+      } else {
+        // Fallback: ajouter l'utilisateur localement
+        const user: User = {
+          id: String(created.id ?? Date.now()),
+          name: created.name ?? newUser.name.trim(),
+          email: created.email ?? newUser.email.trim().toLowerCase(),
+          role: created.role ?? newUser.role,
+          avatar: created.avatar,
+        }
+        setUsers((prev) => [...prev, user])
       }
-      setUsers((prev) => [...prev, user])
     } catch (err: any) {
       console.error("Erreur création utilisateur:", err)
       alert(`Erreur lors de la création: ${err.message || err}`)
@@ -363,8 +402,13 @@ export function UserManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-slate-500">Chargement des utilisateurs...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredUsers.map((user) => (
               <div
                 key={user.id}
                 className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
@@ -400,10 +444,11 @@ export function UserManagement() {
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {filteredUsers.length === 0 && (
+          {!loading && filteredUsers.length === 0 && (
             <div className="text-center py-8">
               <p className="text-slate-500">Aucun utilisateur trouvé avec ces critères.</p>
             </div>
