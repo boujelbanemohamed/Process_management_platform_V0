@@ -14,20 +14,12 @@ export async function GET(request: NextRequest) {
     
     const sql = getSql()
     
-    let query = `
-      SELECT e.*, 
-             ARRAY_AGG(pe.process_id) FILTER (WHERE pe.process_id IS NOT NULL) as process_ids,
-             ARRAY_AGG(p.name) FILTER (WHERE p.name IS NOT NULL) as process_names
-      FROM entities e 
-      LEFT JOIN process_entities pe ON e.id = pe.entity_id 
-      LEFT JOIN processes p ON pe.process_id = p.id
-    `
-    
+    let query = `SELECT * FROM entities`
     const conditions = []
     const params = []
     
     if (type) {
-      conditions.push(`e.type = $${params.length + 1}`)
+      conditions.push(`type = $${params.length + 1}`)
       params.push(type)
     }
     
@@ -35,23 +27,11 @@ export async function GET(request: NextRequest) {
       query += ` WHERE ${conditions.join(' AND ')}`
     }
     
-    query += ` GROUP BY e.id ORDER BY e.name`
+    query += ` ORDER BY name`
     
     const entities = await sql.unsafe(query, params)
     
-    // Formater les résultats
-    const formattedEntities = entities.map(entity => ({
-      id: entity.id.toString(),
-      name: entity.name,
-      type: entity.type,
-      description: entity.description,
-      created_at: entity.created_at,
-      updated_at: entity.updated_at,
-      processes: entity.process_ids ? entity.process_ids.map((id: number) => id.toString()) : [],
-      process_names: entity.process_names || []
-    }))
-    
-    return NextResponse.json(formattedEntities)
+    return NextResponse.json(entities)
   } catch (error) {
     console.error("Error fetching entities:", error)
     return NextResponse.json({ error: "Failed to fetch entities" }, { status: 500 })
