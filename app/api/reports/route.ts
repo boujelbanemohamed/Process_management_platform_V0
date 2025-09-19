@@ -1,0 +1,142 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
+
+function getSql() {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error("DATABASE_URL not set")
+  return neon(url)
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const createdBy = searchParams.get('createdBy')
+    const type = searchParams.get('type')
+    const isPublic = searchParams.get('isPublic')
+    
+    const sql = getSql()
+    
+    let query = `
+      SELECT r.*, u.name as created_by_name
+      FROM reports r
+      LEFT JOIN users u ON r.created_by = u.id
+    `
+    
+    const conditions = []
+    const params = []
+    
+    if (createdBy) {
+      conditions.push(`r.created_by = $${params.length + 1}`)
+      params.push(createdBy)
+    }
+    
+    if (type) {
+      conditions.push(`r.type = $${params.length + 1}`)
+      params.push(type)
+    }
+    
+    if (isPublic !== null) {
+      conditions.push(`r.is_public = $${params.length + 1}`)
+      params.push(isPublic === 'true')
+    }
+    
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`
+    }
+    
+    query += ` ORDER BY r.created_at DESC`
+    
+    const reports = await sql.unsafe(query, params)
+    
+    return NextResponse.json(reports)
+  } catch (error) {
+    console.error("Error fetching reports:", error)
+    return NextResponse.json({ error: "Failed to fetch reports" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { name, description, type, filters, data, createdBy, isPublic, tags } = await request.json()
+    
+    if (!name || !type || !createdBy) {
+      return NextResponse.json({ error: "Name, type, and createdBy are required" }, { status: 400 })
+    }
+    
+    const sql = getSql()
+    
+    const result = await sql`
+      INSERT INTO reports (name, description, type, filters, data, created_by, is_public, tags)
+      VALUES (${name}, ${description || ''}, ${type}, ${JSON.stringify(filters || {})}, ${JSON.stringify(data || {})}, ${createdBy}, ${isPublic || false}, ${JSON.stringify(tags || [])})
+      RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
+    `
+    
+    return NextResponse.json(result[0], { status: 201 })
+  } catch (error) {
+    console.error("Error creating report:", error)
+    return NextResponse.json({ error: "Failed to create report" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, name, description, type, filters, data, isPublic, tags } = await request.json()
+    
+    if (!id) {
+      return NextResponse.json({ error: "Report ID is required" }, { status: 400 })
+    }
+    
+    const sql = getSql()
+    
+    const result = await sql`
+      UPDATE reports 
+      SET name = ${name || ''}, 
+          description = ${description || ''}, 
+          type = ${type || ''}, 
+          filters = ${JSON.stringify(filters || {})},
+          data = ${JSON.stringify(data || {})},
+          is_public = ${isPublic || false},
+          tags = ${JSON.stringify(tags || [])},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
+    `
+    
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Report not found" }, { status: 404 })
+    }
+    
+    return NextResponse.json(result[0])
+  } catch (error) {
+    console.error("Error updating report:", error)
+    return NextResponse.json({ error: "Failed to update report" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json({ error: "Report ID is required" }, { status: 400 })
+    }
+    
+    const sql = getSql()
+    
+    const result = await sql`
+      DELETE FROM reports 
+      WHERE id = ${id}
+      RETURNING id, name
+    `
+    
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Report not found" }, { status: 404 })
+    }
+    
+    return NextResponse.json({ success: true, deletedReport: result[0] })
+  } catch (error) {
+    console.error("Error deleting report:", error)
+    return NextResponse.json({ error: "Failed to delete report" }, { status: 500 })
+  }
+}
