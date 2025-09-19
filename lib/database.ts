@@ -155,36 +155,48 @@ export async function initializeDatabase() {
       )
     `)
 
-    // Insert default permissions
-    await DatabaseService.query(`
-      INSERT INTO permissions (name, description, resource, action) VALUES
-      ('users.read', 'Lire les informations des utilisateurs', 'users', 'read'),
-      ('users.create', 'Créer de nouveaux utilisateurs', 'users', 'create'),
-      ('users.update', 'Modifier les informations des utilisateurs', 'users', 'update'),
-      ('users.delete', 'Supprimer des utilisateurs', 'users', 'delete'),
-      ('processes.read', 'Lire les processus', 'processes', 'read'),
-      ('processes.create', 'Créer de nouveaux processus', 'processes', 'create'),
-      ('processes.update', 'Modifier les processus', 'processes', 'update'),
-      ('processes.delete', 'Supprimer des processus', 'processes', 'delete'),
-      ('documents.read', 'Lire les documents', 'documents', 'read'),
-      ('documents.create', 'Créer de nouveaux documents', 'documents', 'create'),
-      ('documents.update', 'Modifier les documents', 'documents', 'update'),
-      ('documents.delete', 'Supprimer des documents', 'documents', 'delete'),
-      ('settings.read', 'Accéder aux paramètres', 'settings', 'read'),
-      ('settings.update', 'Modifier les paramètres', 'settings', 'update'),
-      ('analytics.read', 'Voir les analyses', 'analytics', 'read'),
-      ('reports.generate', 'Générer des rapports', 'reports', 'generate')
-      ON CONFLICT (resource, action) DO NOTHING
-    `)
+    // Insert default permissions one by one
+    const permissions = [
+      ['users.read', 'Lire les informations des utilisateurs', 'users', 'read'],
+      ['users.create', 'Créer de nouveaux utilisateurs', 'users', 'create'],
+      ['users.update', 'Modifier les informations des utilisateurs', 'users', 'update'],
+      ['users.delete', 'Supprimer des utilisateurs', 'users', 'delete'],
+      ['processes.read', 'Lire les processus', 'processes', 'read'],
+      ['processes.create', 'Créer de nouveaux processus', 'processes', 'create'],
+      ['processes.update', 'Modifier les processus', 'processes', 'update'],
+      ['processes.delete', 'Supprimer des processus', 'processes', 'delete'],
+      ['documents.read', 'Lire les documents', 'documents', 'read'],
+      ['documents.create', 'Créer de nouveaux documents', 'documents', 'create'],
+      ['documents.update', 'Modifier les documents', 'documents', 'update'],
+      ['documents.delete', 'Supprimer des documents', 'documents', 'delete'],
+      ['settings.read', 'Accéder aux paramètres', 'settings', 'read'],
+      ['settings.update', 'Modifier les paramètres', 'settings', 'update'],
+      ['analytics.read', 'Voir les analyses', 'analytics', 'read'],
+      ['reports.generate', 'Générer des rapports', 'reports', 'generate']
+    ]
 
-    // Insert default roles
-    await DatabaseService.query(`
-      INSERT INTO roles (name, description, is_system) VALUES
-      ('admin', 'Administrateur avec tous les droits', TRUE),
-      ('contributor', 'Contributeur avec droits de création et modification', TRUE),
-      ('reader', 'Lecteur avec droits de lecture uniquement', TRUE)
-      ON CONFLICT (name) DO NOTHING
-    `)
+    for (const [name, description, resource, action] of permissions) {
+      await DatabaseService.query(`
+        INSERT INTO permissions (name, description, resource, action) 
+        VALUES (${name}, ${description}, ${resource}, ${action})
+        ON CONFLICT (resource, action) DO NOTHING
+      `)
+    }
+
+    // Insert default roles one by one
+    const roles = [
+      ['admin', 'Administrateur avec tous les droits', true],
+      ['contributor', 'Contributeur avec droits de création et modification', true],
+      ['reader', 'Lecteur avec droits de lecture uniquement', true]
+    ]
+
+    for (const [name, description, isSystem] of roles) {
+      await DatabaseService.query(`
+        INSERT INTO roles (name, description, is_system) 
+        VALUES (${name}, ${description}, ${isSystem})
+        ON CONFLICT (name) DO NOTHING
+      `)
+    }
 
     // Assign permissions to roles
     // Admin gets all permissions
