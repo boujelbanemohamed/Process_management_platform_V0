@@ -54,6 +54,53 @@ export function PermissionMatrix({ userId }: PermissionMatrixProps) {
     loadPermissions()
   }, [])
 
+  // Fallback si l'API n'est pas disponible
+  useEffect(() => {
+    if (!loading && permissions.length === 0) {
+      // Utiliser les permissions par défaut
+      const defaultPermissions: Permission[] = [
+        { id: 1, name: "users.read", description: "Lire les informations des utilisateurs", resource: "users", action: "read" },
+        { id: 2, name: "users.create", description: "Créer de nouveaux utilisateurs", resource: "users", action: "create" },
+        { id: 3, name: "users.update", description: "Modifier les informations des utilisateurs", resource: "users", action: "update" },
+        { id: 4, name: "users.delete", description: "Supprimer des utilisateurs", resource: "users", action: "delete" },
+        { id: 5, name: "processes.read", description: "Lire les processus", resource: "processes", action: "read" },
+        { id: 6, name: "processes.create", description: "Créer de nouveaux processus", resource: "processes", action: "create" },
+        { id: 7, name: "processes.update", description: "Modifier les processus", resource: "processes", action: "update" },
+        { id: 8, name: "processes.delete", description: "Supprimer des processus", resource: "processes", action: "delete" },
+        { id: 9, name: "documents.read", description: "Lire les documents", resource: "documents", action: "read" },
+        { id: 10, name: "documents.create", description: "Créer de nouveaux documents", resource: "documents", action: "create" },
+        { id: 11, name: "documents.update", description: "Modifier les documents", resource: "documents", action: "update" },
+        { id: 12, name: "documents.delete", description: "Supprimer des documents", resource: "documents", action: "delete" },
+        { id: 13, name: "settings.read", description: "Accéder aux paramètres", resource: "settings", action: "read" },
+        { id: 14, name: "settings.update", description: "Modifier les paramètres", resource: "settings", action: "update" },
+        { id: 15, name: "analytics.read", description: "Voir les analyses", resource: "analytics", action: "read" },
+        { id: 16, name: "reports.generate", description: "Générer des rapports", resource: "reports", action: "generate" }
+      ]
+
+      const defaultRoles: Role[] = [
+        { id: 1, name: "admin", description: "Administrateur avec tous les droits", is_system: true },
+        { id: 2, name: "contributor", description: "Contributeur avec droits de création et modification", is_system: true },
+        { id: 3, name: "reader", description: "Lecteur avec droits de lecture uniquement", is_system: true }
+      ]
+
+      // Matrice par défaut
+      const defaultMatrix: Role[] = defaultRoles.map(role => ({
+        ...role,
+        permissions: defaultPermissions.map(permission => ({
+          ...permission,
+          granted: role.name === 'admin' || 
+                   (role.name === 'contributor' && ['read', 'create', 'update'].includes(permission.action)) ||
+                   (role.name === 'reader' && permission.action === 'read')
+        }))
+      }))
+
+      setPermissions(defaultPermissions)
+      setRoles(defaultRoles)
+      setMatrix(defaultMatrix)
+      setLoading(false)
+    }
+  }, [loading, permissions.length])
+
   const loadPermissions = async () => {
     try {
       setLoading(true)
