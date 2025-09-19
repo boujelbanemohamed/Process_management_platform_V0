@@ -11,12 +11,8 @@ export class AuthService {
     try {
       console.log("🔐 Tentative de connexion pour:", email)
       
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      const response = await fetch(`/api/users?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, {
+        method: "GET",
       })
 
       const data = await response.json()
