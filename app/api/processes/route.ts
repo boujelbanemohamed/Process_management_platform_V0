@@ -113,9 +113,14 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const idFromUrl = searchParams.get('id')
     const { id, name, description, category, status, tags } = await request.json()
 
-    if (!id) {
+    // Utiliser l'ID de l'URL en priorité, sinon celui du body
+    const processId = idFromUrl || id
+
+    if (!processId) {
       return NextResponse.json({ error: "Process ID is required" }, { status: 400 })
     }
 
@@ -133,7 +138,7 @@ export async function PUT(request: NextRequest) {
           category = ${category || ''}, 
           status = ${status || 'draft'},
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
+      WHERE id = ${processId}
       RETURNING id, name, description, category, status, created_by, created_at, updated_at
     `
     
@@ -146,7 +151,7 @@ export async function PUT(request: NextRequest) {
       await sql`
         UPDATE processes 
         SET tags = ${tags}
-        WHERE id = ${id}
+        WHERE id = ${processId}
       `
     }
     
