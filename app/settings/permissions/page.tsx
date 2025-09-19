@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { PermissionsMatrix } from "@/components/admin/permissions-matrix"
+import { SimplePermissionMatrix } from "@/components/admin/simple-permissions-matrix"
 
 export default function PermissionsPage() {
   return (
     <DashboardLayout>
-      <PermissionsMatrix />
+      <SimplePermissionMatrix />
     </DashboardLayout>
   )
 }
