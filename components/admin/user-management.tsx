@@ -143,9 +143,9 @@ export function UserManagement() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: user.email,
-            name: user.name,
-            role: user.role,
+            email: created.email,
+            name: created.name,
+            role: created.role,
             inviteToken,
           }),
         })
@@ -153,7 +153,7 @@ export function UserManagement() {
         const result = await response.json()
 
         if (result.success) {
-          alert(`Utilisateur créé avec succès ! Un email d'invitation a été envoyé à ${user.email}`)
+          alert(`Utilisateur créé avec succès ! Un email d'invitation a été envoyé à ${created.email}`)
           // In development, show the invitation link
           if (result.invitationLink) {
             console.log("[v0] Invitation link:", result.invitationLink)
