@@ -94,12 +94,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, role, password, action } = await request.json()
+    const body = await request.json()
+    const { name, email, role, password, action, userId, newRole } = body
 
     // Si c'est une mise à jour de rôle
     if (action === 'update-role') {
-      const { userId, newRole } = await request.json()
-      
       if (!userId || !newRole) {
         return NextResponse.json({ error: "User ID and role required" }, { status: 400 })
       }
