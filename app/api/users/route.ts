@@ -94,8 +94,32 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, role, password } = await request.json()
+    const { name, email, role, password, action } = await request.json()
 
+    // Si c'est une mise à jour de rôle
+    if (action === 'update-role') {
+      const { userId, newRole } = await request.json()
+      
+      if (!userId || !newRole) {
+        return NextResponse.json({ error: "User ID and role required" }, { status: 400 })
+      }
+
+      const sql = getSql()
+      const result = await sql`
+        UPDATE users 
+        SET role = ${newRole}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${userId}
+        RETURNING id, name, email, role, avatar, created_at, updated_at
+      `
+
+      if (result.length === 0) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      return NextResponse.json(result[0])
+    }
+
+    // Sinon, création d'utilisateur
     if (!name || !email || !role) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
@@ -119,11 +143,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error: any) {
-    console.error("Error creating user:", error)
+    console.error("Error in users POST:", error)
     // Gestion explicite du doublon d'email (Postgres unique_violation)
     if (error && (error.code === "23505" || /duplicate key value/i.test(String(error.message)))) {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 })
     }
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
   }
 }
