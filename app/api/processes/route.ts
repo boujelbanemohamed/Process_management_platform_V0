@@ -117,8 +117,15 @@ export async function PUT(request: NextRequest) {
     const idFromUrl = searchParams.get('id')
     const { id, name, description, category, status, tags } = await request.json()
 
+    console.log('PUT request - URL:', request.url)
+    console.log('PUT request - idFromUrl:', idFromUrl)
+    console.log('PUT request - id from body:', id)
+    console.log('PUT request - searchParams:', Object.fromEntries(searchParams.entries()))
+
     // Utiliser l'ID de l'URL en priorité, sinon celui du body
     const processId = idFromUrl || id
+
+    console.log('PUT request - processId:', processId)
 
     if (!processId) {
       return NextResponse.json({ error: "Process ID is required" }, { status: 400 })
