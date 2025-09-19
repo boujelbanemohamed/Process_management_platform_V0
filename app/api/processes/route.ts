@@ -33,18 +33,28 @@ export async function POST(request: NextRequest) {
 
     const sql = getSql()
     
-    // Utiliser l'ID 1 par défaut si createdBy n'est pas fourni
-    const userId = createdBy || 1
+    // Vérifier que l'utilisateur existe, sinon utiliser l'ID 1
+    let userId = createdBy || 1
+    if (createdBy) {
+      const userExists = await sql`SELECT id FROM users WHERE id = ${createdBy}`
+      if (userExists.length === 0) {
+        userId = 1 // Fallback vers l'utilisateur par défaut
+      }
+    }
     
     const result = await sql`
       INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${JSON.stringify(tags || [])})
-      RETURNING *
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tags ? JSON.stringify(tags) : '[]'})
+      RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
     `
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
     console.error("Error creating process:", error)
-    return NextResponse.json({ error: "Failed to create process" }, { status: 500 })
+    console.error("Error details:", error.message)
+    return NextResponse.json({ 
+      error: "Failed to create process", 
+      details: error.message 
+    }, { status: 500 })
   }
 }

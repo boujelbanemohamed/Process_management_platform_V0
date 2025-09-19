@@ -65,19 +65,29 @@ export async function POST(request: NextRequest) {
     
     const sql = getSql()
     
-    // Utiliser l'ID 1 par défaut si createdBy n'est pas fourni
-    const userId = createdBy || 1
+    // Vérifier que l'utilisateur existe, sinon utiliser l'ID 1
+    let userId = createdBy || 1
+    if (createdBy) {
+      const userExists = await sql`SELECT id FROM users WHERE id = ${createdBy}`
+      if (userExists.length === 0) {
+        userId = 1 // Fallback vers l'utilisateur par défaut
+      }
+    }
     
     const result = await sql`
       INSERT INTO reports (name, description, type, filters, data, created_by, is_public, tags)
-      VALUES (${name}, ${description || ''}, ${type}, ${JSON.stringify(filters || {})}, ${JSON.stringify(data || {})}, ${userId}, ${isPublic || false}, ${JSON.stringify(tags || [])})
+      VALUES (${name}, ${description || ''}, ${type}, ${filters ? JSON.stringify(filters) : '{}'}, ${data ? JSON.stringify(data) : '{}'}, ${userId}, ${isPublic || false}, ${tags ? JSON.stringify(tags) : '[]'})
       RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
     `
     
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
     console.error("Error creating report:", error)
-    return NextResponse.json({ error: "Failed to create report" }, { status: 500 })
+    console.error("Error details:", error.message)
+    return NextResponse.json({ 
+      error: "Failed to create report", 
+      details: error.message 
+    }, { status: 500 })
   }
 }
 

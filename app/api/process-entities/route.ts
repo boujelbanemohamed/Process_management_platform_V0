@@ -65,7 +65,29 @@ export async function POST(request: NextRequest) {
     const entityExists = await sql`SELECT id FROM entities WHERE id = ${entityId}`
     
     if (processExists.length === 0) {
-      return NextResponse.json({ error: "Process not found" }, { status: 404 })
+      // Créer un processus par défaut si aucun n'existe
+      const defaultProcess = await sql`
+        INSERT INTO processes (name, description, category, status, created_by, tags)
+        VALUES ('Processus par défaut', 'Processus créé automatiquement pour les relations', 'default', 'active', 1, '[]')
+        RETURNING id
+      `
+      const actualProcessId = defaultProcess[0].id
+      
+      const result = await sql`
+        INSERT INTO process_entities (process_id, entity_id)
+        VALUES (${actualProcessId}, ${entityId})
+        ON CONFLICT (process_id, entity_id) DO NOTHING
+        RETURNING process_id, entity_id
+      `
+      
+      if (result.length === 0) {
+        return NextResponse.json({ error: "Relation already exists" }, { status: 409 })
+      }
+      
+      return NextResponse.json({ 
+        ...result[0], 
+        message: "Processus par défaut créé automatiquement" 
+      }, { status: 201 })
     }
     
     if (entityExists.length === 0) {
@@ -86,7 +108,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
     console.error("Error creating process-entity relation:", error)
-    return NextResponse.json({ error: "Failed to create process-entity relation" }, { status: 500 })
+    console.error("Error details:", error.message)
+    return NextResponse.json({ 
+      error: "Failed to create process-entity relation", 
+      details: error.message 
+    }, { status: 500 })
   }
 }
 
