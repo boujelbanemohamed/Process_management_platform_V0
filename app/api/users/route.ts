@@ -13,12 +13,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
     
+    console.log("🔍 API Users GET - Action:", action)
+    
     // Si c'est une demande de login
     if (action === 'login') {
+      console.log("🔐 Traitement du login...")
       const email = searchParams.get('email')
       const password = searchParams.get('password')
       
+      console.log("📧 Email:", email, "Password:", password ? "***" : "null")
+      
       if (!email || !password) {
+        console.log("❌ Champs manquants")
         return NextResponse.json({ error: "Email et mot de passe requis" }, { status: 400 })
       }
 
@@ -31,26 +37,34 @@ export async function GET(request: NextRequest) {
         FROM users 
         WHERE email = ${normalizedEmail}
       `
+      
+      console.log("👥 Utilisateurs trouvés:", users.length)
 
       if (users.length === 0) {
+        console.log("❌ Aucun utilisateur trouvé")
         return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 })
       }
 
       const user = users[0]
+      console.log("👤 Utilisateur trouvé:", user.name, "Hash présent:", !!user.password_hash)
 
       // Vérifier le mot de passe
       if (!user.password_hash) {
+        console.log("❌ Aucun mot de passe défini")
         return NextResponse.json({ error: "Aucun mot de passe défini pour cet utilisateur" }, { status: 401 })
       }
 
       const isValidPassword = await bcrypt.compare(password, user.password_hash)
+      console.log("🔑 Mot de passe valide:", isValidPassword)
+      
       if (!isValidPassword) {
+        console.log("❌ Mot de passe incorrect")
         return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 })
       }
 
       // Retourner les informations de l'utilisateur (sans le hash du mot de passe)
       const { password_hash, ...userWithoutPassword } = user
-      return NextResponse.json({
+      const response = {
         success: true,
         user: {
           id: String(user.id),
@@ -59,7 +73,9 @@ export async function GET(request: NextRequest) {
           role: user.role,
           avatar: user.avatar,
         }
-      })
+      }
+      console.log("✅ Connexion réussie:", response)
+      return NextResponse.json(response)
     }
     
     // Sinon, retourner la liste des utilisateurs
