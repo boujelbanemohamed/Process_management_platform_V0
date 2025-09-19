@@ -57,7 +57,10 @@ export async function GET(request: NextRequest) {
     
     const logs = await sql.unsafe(query, params)
     
-    return NextResponse.json(logs)
+    // S'assurer que c'est un tableau
+    const logsArray = Array.isArray(logs) ? logs : []
+    
+    return NextResponse.json(logsArray)
   } catch (error) {
     console.error("Error fetching access logs:", error)
     return NextResponse.json({ error: "Failed to fetch access logs" }, { status: 500 })

@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     
     const categories = await sql.unsafe(query, params)
     
-    return NextResponse.json(categories)
+    // S'assurer que c'est un tableau
+    const categoriesArray = Array.isArray(categories) ? categories : []
+    
+    return NextResponse.json(categoriesArray)
   } catch (error) {
     console.error("Error fetching categories:", error)
     return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 })

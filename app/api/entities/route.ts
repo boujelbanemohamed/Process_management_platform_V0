@@ -30,8 +30,11 @@ export async function GET(request: NextRequest) {
     query += ` ORDER BY name`
     
     const entities = await sql.unsafe(query, params)
-    
-    return NextResponse.json(entities)
+
+    // S'assurer que c'est un tableau
+    const entitiesArray = Array.isArray(entities) ? entities : []
+
+    return NextResponse.json(entitiesArray)
   } catch (error) {
     console.error("Error fetching entities:", error)
     return NextResponse.json({ error: "Failed to fetch entities" }, { status: 500 })
