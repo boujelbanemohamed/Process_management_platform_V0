@@ -42,14 +42,22 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Utiliser la syntaxe template literals de Neon pour éviter les problèmes de sérialisation
-    const tagsArray = tags && Array.isArray(tags) ? tags : []
-    
+    // Créer le processus d'abord sans les tags pour éviter les problèmes de sérialisation
     const result = await sql`
-      INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tagsArray})
-      RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
+      INSERT INTO processes (name, description, category, status, created_by)
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId})
+      RETURNING id, name, description, category, status, created_by, created_at, updated_at
     `
+    
+    // Ajouter les tags séparément si nécessaire
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      const processId = result[0].id
+      await sql`
+        UPDATE processes 
+        SET tags = ${tags}
+        WHERE id = ${processId}
+      `
+    }
     
     console.log('SQL result:', result)
 
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
       created_by: process.created_by,
       created_at: process.created_at,
       updated_at: process.updated_at,
-      tags: process.tags || []
+      tags: tags && Array.isArray(tags) ? tags : []
     }
 
     return NextResponse.json(serializableProcess, { status: 201 })
