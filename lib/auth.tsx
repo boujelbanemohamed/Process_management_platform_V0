@@ -8,37 +8,34 @@ export class AuthService {
   private static currentUser: User | null = null
 
   static async login(email: string, password: string): Promise<User | null> {
-    const mockUsers: User[] = [
-      {
-        id: "1",
-        name: "Admin User",
-        email: "admin@company.com",
-        role: "admin",
-        avatar: "/professional-avatar.png",
-      },
-      {
-        id: "2",
-        name: "John Contributor",
-        email: "john@company.com",
-        role: "contributor",
-        avatar: "/professional-avatar.png",
-      },
-      {
-        id: "3",
-        name: "Jane Reader",
-        email: "jane@company.com",
-        role: "reader",
-        avatar: "/professional-avatar.png",
-      },
-    ]
+    try {
+      console.log("🔐 Tentative de connexion pour:", email)
+      
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-    const user = mockUsers.find((u) => u.email === email)
-    if (user && password === "password") {
-      this.currentUser = user
-      localStorage.setItem("currentUser", JSON.stringify(user))
-      return user
+      const data = await response.json()
+      console.log("📥 Réponse de connexion:", response.status, data)
+
+      if (response.ok && data.success) {
+        const user = data.user
+        this.currentUser = user
+        localStorage.setItem("currentUser", JSON.stringify(user))
+        console.log("✅ Connexion réussie:", user)
+        return user
+      } else {
+        console.error("❌ Échec de connexion:", data.error)
+        return null
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la connexion:", error)
+      return null
     }
-    return null
   }
 
   static logout(): void {
