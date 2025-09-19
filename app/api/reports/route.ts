@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     
     const result = await sql`
       INSERT INTO reports (name, description, type, filters, data, created_by, is_public, tags)
-      VALUES (${name}, ${description || ''}, ${type}, ${filters ? JSON.stringify(filters) : '{}'}, ${data ? JSON.stringify(data) : '{}'}, ${userId}, ${isPublic || false}, ${tags ? JSON.stringify(tags) : '[]'})
+      VALUES (${name}, ${description || ''}, ${type}, ${filters || {}}, ${data || {}}, ${userId}, ${isPublic || false}, ${tags || []})
       RETURNING id, name, description, type, filters, data, created_by, is_public, tags, created_at, updated_at
     `
     

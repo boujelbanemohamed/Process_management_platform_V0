@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     
     const result = await sql`
       INSERT INTO processes (name, description, category, status, created_by, tags)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tags ? JSON.stringify(tags) : '[]'})
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${tags || []})
       RETURNING id, name, description, category, status, created_by, created_at, updated_at, tags
     `
 
