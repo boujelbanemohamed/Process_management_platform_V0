@@ -8,6 +8,21 @@ function getSql() {
   return neon(url)
 }
 
+async function ensureUsersTable(sql: any) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGSERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'reader',
+      password_hash TEXT,
+      avatar VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -30,6 +45,7 @@ export async function GET(request: NextRequest) {
 
       const normalizedEmail = email.trim().toLowerCase()
       const sql = getSql()
+      await ensureUsersTable(sql)
 
       // Rechercher l'utilisateur par email
       const users = await sql`
@@ -86,6 +102,7 @@ export async function GET(request: NextRequest) {
     
     // Sinon, retourner la liste des utilisateurs
     const sql = getSql()
+    await ensureUsersTable(sql)
     const users = await sql`
       SELECT id, name, email, role, avatar, created_at, updated_at 
       FROM users 
