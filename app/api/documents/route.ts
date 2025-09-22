@@ -29,35 +29,36 @@ export async function GET(request: NextRequest) {
       )
     `
     
-    let query = `
-      SELECT d.*, u.name as uploaded_by_name, p.name as process_name
-      FROM documents d
-      LEFT JOIN users u ON d.uploaded_by = u.id
-      LEFT JOIN processes p ON d.process_id = p.id
-    `
-    
-    const conditions = []
-    const params = []
-    
+    let rows: any[] = []
     if (processId) {
-      conditions.push(`d.process_id = $${params.length + 1}`)
-      params.push(processId)
+      rows = await sql`
+        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        LEFT JOIN processes p ON d.process_id = p.id
+        WHERE d.process_id = ${Number(processId)}
+        ORDER BY d.uploaded_at DESC
+      `
+    } else if (type) {
+      rows = await sql`
+        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        LEFT JOIN processes p ON d.process_id = p.id
+        WHERE d.type = ${type}
+        ORDER BY d.uploaded_at DESC
+      `
+    } else {
+      rows = await sql`
+        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        LEFT JOIN processes p ON d.process_id = p.id
+        ORDER BY d.uploaded_at DESC
+      `
     }
-    
-    if (type) {
-      conditions.push(`d.type = $${params.length + 1}`)
-      params.push(type)
-    }
-    
-    if (conditions.length > 0) {
-      query += ` WHERE ${conditions.join(' AND ')}`
-    }
-    
-    query += ` ORDER BY d.uploaded_at DESC`
-    
-    const documents = await sql.unsafe(query, params)
-    const documentsArray = Array.isArray(documents) ? documents : []
-    return NextResponse.json(documentsArray)
+
+    return NextResponse.json(rows)
   } catch (error) {
     console.error("Error fetching documents:", error)
     return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 })
