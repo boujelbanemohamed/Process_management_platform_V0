@@ -45,9 +45,10 @@ export async function POST(request: NextRequest) {
     `)
 
     // Persister en base
-    await DatabaseService.query(
+    const insert = await DatabaseService.query(
       `INSERT INTO documents (name, type, size, version, process_id, url, uploaded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING id, name, type, size, version, process_id, url, uploaded_by, uploaded_at`,
       [
         file.name,
         file.type || "application/octet-stream",
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
       ],
     )
 
-    return NextResponse.json({ url: blob.url })
+    console.log("/api/uploads inserted:", insert.rows?.[0])
+    return NextResponse.json({ url: blob.url, document: insert.rows?.[0] })
   } catch (error: any) {
     console.error("/api/uploads error:", error)
     return NextResponse.json({ error: "Upload failed", details: error?.message || String(error) }, { status: 500 })
