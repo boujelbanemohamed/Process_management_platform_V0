@@ -28,7 +28,33 @@ export function DocumentList() {
           throw new Error('Erreur lors du chargement des documents')
         }
         const data = await response.json()
-        setDocuments(data)
+        // Normaliser les champs venant de l'API (snake_case -> camelCase)
+        const normalized = (Array.isArray(data) ? data : []).map((d: any) => {
+          const mime = String(d.type || '').toLowerCase()
+          const ext = mime.startsWith('application/pdf')
+            ? 'pdf'
+            : mime.includes('word') || mime.endsWith('/doc') || mime.endsWith('/docx')
+            ? 'docx'
+            : mime.includes('sheet') || mime.endsWith('/xls') || mime.endsWith('/xlsx')
+            ? 'xlsx'
+            : mime.includes('png')
+            ? 'png'
+            : mime.includes('jpeg') || mime.includes('jpg')
+            ? 'jpg'
+            : mime
+          return {
+            id: String(d.id),
+            name: d.name,
+            type: ext || 'file',
+            size: Number(d.size || 0),
+            version: d.version || '1.0',
+            uploadedAt: d.uploaded_at ? new Date(d.uploaded_at) : new Date(),
+            processId: String(d.process_id || ''),
+            url: d.url || '#',
+            processName: d.process_name || 'Processus inconnu',
+          } as any
+        })
+        setDocuments(normalized as any)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur inconnue')
         console.error('Error fetching documents:', err)
@@ -98,10 +124,7 @@ export function DocumentList() {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
-  const getProcessName = (processId: string) => {
-    const process = mockProcesses.find((p) => p.id === processId)
-    return process?.name || "Processus inconnu"
-  }
+  const getProcessName = (doc: any) => doc.processName || "Processus inconnu"
 
   const handleView = (documentId: string) => {
     router.push(`/documents/${documentId}`)
@@ -111,11 +134,10 @@ export function DocumentList() {
     router.push(`/documents/${documentId}/edit`)
   }
 
-  const handleDownload = (document: Document) => {
-    // Simulate download
-    const link = document.createElement("a")
-    link.href = document.url
-    link.download = document.name
+  const handleDownload = (doc: Document) => {
+    const link = window.document.createElement("a")
+    link.href = doc.url
+    link.download = doc.name
     link.click()
   }
 
@@ -199,11 +221,11 @@ export function DocumentList() {
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-xs text-slate-500">Version {document.version}</span>
                       <span className="text-xs text-slate-500">{formatFileSize(document.size)}</span>
-                      <span className="text-xs text-slate-500">{document.uploadedAt.toLocaleDateString()}</span>
+                      <span className="text-xs text-slate-500">{document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString('fr-FR') : '—'}</span>
                     </div>
                     <div className="mt-2">
                       <Badge variant="outline" className="text-xs">
-                        {getProcessName(document.processId)}
+                        {getProcessName(document)}
                       </Badge>
                     </div>
                   </div>
