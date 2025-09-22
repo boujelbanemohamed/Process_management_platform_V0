@@ -198,6 +198,6 @@ export async function POST(request: NextRequest) {
     if (error && (error.code === "23505" || /duplicate key value/i.test(String(error.message)))) {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 })
     }
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to process request", details: String(error?.message || error) }, { status: 500 })
   }
 }
