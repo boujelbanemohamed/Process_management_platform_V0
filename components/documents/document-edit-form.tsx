@@ -2,15 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { mockDocuments, mockProcesses } from "@/lib/data"
-import { ArrowLeft, Save, Upload } from "lucide-react"
+import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react"
 import type { Document } from "@/types"
 
 interface DocumentEditFormProps {
@@ -19,13 +18,71 @@ interface DocumentEditFormProps {
 
 export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter()
-  const [document] = useState<Document | null>(mockDocuments.find((d) => d.id === documentId) || null)
+  const [document, setDocument] = useState<Document | null>(null)
+  const [processes, setProcesses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: document?.name || "",
-    processId: document?.processId || "",
+    name: "",
+    processId: "",
     description: "",
   })
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        // Charger le document
+        const resDoc = await fetch(`/api/documents?id=${documentId}`)
+        if (!resDoc.ok) throw new Error("Erreur lors du chargement du document")
+        const data = await resDoc.json()
+        const normalized: any = {
+          ...data,
+          id: String(data.id),
+          name: data.name || "Sans nom",
+          uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
+          uploadedBy: String(data.uploaded_by || 1),
+          processId: data.process_id ? String(data.process_id) : "",
+          version: data.version || "1.0",
+          type: data.type || "unknown",
+          url: data.url || "#",
+        }
+        setDocument(normalized)
+        setFormData({ name: normalized.name, processId: normalized.processId, description: "" })
+
+        // Charger les processus pour la liste déroulante
+        const resProc = await fetch(`/api/processes`)
+        if (resProc.ok) {
+          const procs = await resProc.json()
+          setProcesses(Array.isArray(procs) ? procs : [])
+        }
+      } catch (e: any) {
+        setError(e?.message || "Erreur inconnue")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [documentId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Chargement du document...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Erreur: {error}</p>
+        <Button onClick={() => router.refresh()}>Réessayer</Button>
+      </div>
+    )
+  }
 
   if (!document) {
     return (
@@ -38,12 +95,25 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    setIsLoading(false)
-    router.push(`/documents/${documentId}`)
+    try {
+      const response = await fetch(`/api/documents`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: documentId,
+          name: formData.name,
+          processId: formData.processId ? Number(formData.processId) : null,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error("Erreur lors de la sauvegarde du document")
+      }
+      router.push(`/documents/${documentId}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleNewVersion = async () => {
@@ -97,7 +167,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
                   className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   <option value="">Sélectionner un processus</option>
-                  {mockProcesses.map((process) => (
+                  {processes.map((process) => (
                     <option key={process.id} value={process.id}>
                       {process.name}
                     </option>
@@ -136,11 +206,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
             <CardDescription>Téléchargez une nouvelle version du document</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600">
               <p>
                 Version actuelle: <span className="font-medium">{document.version}</span>
               </p>
-              <p>Dernière modification: {document.uploadedAt.toLocaleDateString()}</p>
+              <p>Dernière modification: {document.uploadedAt.toLocaleDateString("fr-FR")}</p>
             </div>
 
             <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
