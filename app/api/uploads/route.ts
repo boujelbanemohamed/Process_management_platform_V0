@@ -55,13 +55,15 @@ export async function GET() {
   try {
     const token = process.env.BLOB_READ_WRITE_TOKEN
     let dbOk = false
+    let dbError: string | null = null
     try {
       await DatabaseService.query('SELECT 1')
       dbOk = true
-    } catch {
+    } catch (err: any) {
       dbOk = false
+      dbError = err?.message || String(err)
     }
-    return NextResponse.json({ hasToken: Boolean(token), dbOk })
+    return NextResponse.json({ hasToken: Boolean(token), dbOk, dbError })
   } catch (e: any) {
     return NextResponse.json({ error: 'diagnostic-failed', details: e?.message || String(e) }, { status: 500 })
   }
