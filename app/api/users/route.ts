@@ -202,11 +202,27 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = getSql()
-    const result = await sql`
-      INSERT INTO users (name, email, role, password_hash, avatar)
-      VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
-      RETURNING id, name, email, role, avatar, created_at, updated_at
-    `
+    let result
+    try {
+      result = await sql`
+        INSERT INTO users (name, email, role, password_hash, avatar)
+        VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
+        RETURNING id, name, email, role, avatar, created_at, updated_at
+      `
+    } catch (e: any) {
+      // Si la table n'existe pas (42P01), la créer puis réessayer une fois
+      if (e?.code === '42P01' || /relation\s+"?users"?\s+does not exist/i.test(String(e?.message))) {
+        console.warn('users table missing, creating then retrying...')
+        await ensureUsersTable(sql)
+        result = await sql`
+          INSERT INTO users (name, email, role, password_hash, avatar)
+          VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
+          RETURNING id, name, email, role, avatar, created_at, updated_at
+        `
+      } else {
+        throw e
+      }
+    }
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error: any) {
