@@ -213,7 +213,7 @@ export function ProcessList() {
                 )}
 
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-sm text-slate-500">{process.documents?.length || 0} document(s)</span>
+                  <span className="text-sm text-slate-500">{process.document_count || 0} document(s)</span>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => handleView(process.id)}>
                       <Eye className="h-4 w-4" />

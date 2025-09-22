@@ -57,16 +57,22 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(process[0])
-    } else {
-      // Récupérer tous les processus
-      const processes = await sql`
-        SELECT p.*, u.name as created_by_name
-        FROM processes p
-        LEFT JOIN users u ON p.created_by = u.id
-        ORDER BY p.updated_at DESC
-      `
-      return NextResponse.json(processes)
-    }
+           } else {
+             // Récupérer tous les processus avec le nombre de documents
+             const processes = await sql`
+               SELECT p.*, u.name as created_by_name,
+                      COALESCE(doc_count.document_count, 0) as document_count
+               FROM processes p
+               LEFT JOIN users u ON p.created_by = u.id
+               LEFT JOIN (
+                 SELECT process_id, COUNT(*) as document_count
+                 FROM documents
+                 GROUP BY process_id
+               ) doc_count ON p.id = doc_count.process_id
+               ORDER BY p.updated_at DESC
+             `
+             return NextResponse.json(processes)
+           }
   } catch (error) {
     console.error("Error fetching processes:", error)
     // Pour éviter de casser le dashboard, renvoyer un tableau vide

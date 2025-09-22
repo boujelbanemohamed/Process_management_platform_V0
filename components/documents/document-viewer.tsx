@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { mockDocuments, mockProcesses } from "@/lib/data"
-import { Download, Edit, Share, History, FileText, Eye } from "lucide-react"
+import { Download, Edit, Share, History, FileText, Eye, Loader2 } from "lucide-react"
 import type { Document } from "@/types"
 
 interface DocumentViewerProps {
@@ -13,7 +12,65 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ documentId }: DocumentViewerProps) {
-  const [document] = useState<Document | null>(mockDocuments.find((d) => d.id === documentId) || null)
+  const [document, setDocument] = useState<Document | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDocument = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/documents?id=${documentId}`)
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement du document')
+        }
+        const data = await response.json()
+        
+        // Normaliser les données
+        const normalizedDocument = {
+          ...data,
+          id: String(data.id),
+          uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
+          uploadedBy: String(data.uploaded_by || 1),
+          processId: String(data.process_id || ''),
+          size: data.size || 0,
+          version: data.version || '1.0',
+          type: data.type || 'unknown',
+          name: data.name || 'Sans nom',
+          url: data.url || '#'
+        }
+        
+        setDocument(normalizedDocument)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur inconnue')
+        console.error('Error fetching document:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDocument()
+  }, [documentId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Chargement du document...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Erreur: {error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Réessayer
+        </Button>
+      </div>
+    )
+  }
 
   if (!document) {
     return (
@@ -22,8 +79,6 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
       </div>
     )
   }
-
-  const process = mockProcesses.find((p) => p.id === document.processId)
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 B"
@@ -91,7 +146,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
               <div>
                 <p className="text-sm font-medium text-slate-600">Processus associé</p>
                 <Badge variant="outline" className="mt-1">
-                  {process?.name || "Processus inconnu"}
+                  {document.process_name || "Processus inconnu"}
                 </Badge>
               </div>
               <div>

@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { put } from "@vercel/blob"
-import { DatabaseService } from "@/lib/database"
+import { neon } from "@neondatabase/serverless"
+
+function getSql() {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error("DATABASE_URL not set")
+  return neon(url)
+}
 
 // Utiliser Node.js runtime pour simplifier l'accès aux variables d'env et éviter les incompatibilités
 export const runtime = "nodejs"
@@ -30,7 +36,8 @@ export async function POST(request: NextRequest) {
     const blob = await put(safeName, file, { access: "public", token })
 
     // S'assurer que la table documents existe
-    await DatabaseService.query(`
+    const sql = getSql()
+    await sql`
       CREATE TABLE IF NOT EXISTS documents (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -42,26 +49,31 @@ export async function POST(request: NextRequest) {
         process_id BIGINT,
         url VARCHAR(500)
       )
-    `)
+    `
 
-    // Persister en base
-    const insert = await DatabaseService.query(
-      `INSERT INTO documents (name, type, size, version, process_id, url, uploaded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       RETURNING id, name, type, size, version, process_id, url, uploaded_by, uploaded_at`,
-      [
-        file.name,
-        file.type || "application/octet-stream",
-        file.size,
-        "1.0",
-        processId ? Number(processId) : null,
-        blob.url,
-        1,
-      ],
-    )
+    // Persister en base avec Neon
+    console.log("Inserting document with data:", {
+      name: file.name,
+      type: file.type || "application/octet-stream",
+      size: file.size,
+      processId: processId ? Number(processId) : null,
+      url: blob.url
+    })
+    
+    const result = await sql`
+      INSERT INTO documents (name, type, size, version, process_id, url, uploaded_by)
+      VALUES (${file.name}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
+      RETURNING id, name, type, size, version, process_id, url, uploaded_by, uploaded_at
+    `
 
-    console.log("/api/uploads inserted:", insert.rows?.[0])
-    return NextResponse.json({ url: blob.url, document: insert.rows?.[0] })
+    console.log("/api/uploads inserted result:", result)
+    console.log("/api/uploads inserted first row:", result[0])
+    
+    return NextResponse.json({ 
+      url: blob.url, 
+      document: result[0],
+      success: true 
+    })
   } catch (error: any) {
     console.error("/api/uploads error:", error)
     return NextResponse.json({ error: "Upload failed", details: error?.message || String(error) }, { status: 500 })
