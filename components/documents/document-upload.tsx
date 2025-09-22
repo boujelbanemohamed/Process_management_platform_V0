@@ -69,12 +69,38 @@ export function DocumentUpload() {
   }
 
   const handleUpload = async () => {
+    if (files.length === 0) return
     setIsUploading(true)
-    // TODO: remplacer par appel réel à l'API d'upload
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsUploading(false)
-    setFiles([])
-    router.push("/documents")
+    try {
+      for (const f of files) {
+        // Persistance des métadonnées du document (stockage fichier à intégrer ultérieurement)
+        const body = {
+          name: f.file.name,
+          type: f.file.type || 'application/octet-stream',
+          size: f.file.size,
+          version: '1.0',
+          processId: f.processId ? Number(f.processId) : null,
+          url: '',
+          description: f.description || ''
+        }
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err?.error || 'Échec de création du document')
+        }
+      }
+      setFiles([])
+      router.push('/documents')
+    } catch (e) {
+      console.error('Erreur upload:', e)
+      alert("Erreur lors de l'import des documents. Veuillez réessayer.")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const formatFileSize = (bytes: number) => {
