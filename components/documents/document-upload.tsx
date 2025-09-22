@@ -73,24 +73,15 @@ export function DocumentUpload() {
     setIsUploading(true)
     try {
       for (const f of files) {
-        // Persistance des métadonnées du document (stockage fichier à intégrer ultérieurement)
-        const body = {
-          name: f.file.name,
-          type: f.file.type || 'application/octet-stream',
-          size: f.file.size,
-          version: '1.0',
-          processId: f.processId ? Number(f.processId) : null,
-          url: '',
-          description: f.description || ''
-        }
-        const res = await fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        })
+        const fd = new FormData()
+        fd.append('file', f.file)
+        fd.append('processId', f.processId)
+        fd.append('description', f.description)
+
+        const res = await fetch('/api/uploads', { method: 'POST', body: fd })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
-          throw new Error(err?.error || 'Échec de création du document')
+          throw new Error(err?.error || 'Échec de téléversement')
         }
       }
       setFiles([])
