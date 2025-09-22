@@ -194,10 +194,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result[0], { status: 201 })
   } catch (error: any) {
     console.error("Error in users POST:", error)
+    const errObj = {
+      message: error?.message || String(error),
+      code: error?.code,
+      detail: error?.detail,
+      stack: error?.stack,
+    }
     // Gestion explicite du doublon d'email (Postgres unique_violation)
     if (error && (error.code === "23505" || /duplicate key value/i.test(String(error.message)))) {
-      return NextResponse.json({ error: "Email already exists" }, { status: 409 })
+      return NextResponse.json({ error: "Email already exists", ...errObj }, { status: 409 })
     }
-    return NextResponse.json({ error: "Failed to process request", details: String(error?.message || error) }, { status: 500 })
+    return NextResponse.json({ error: "Failed to process request", ...errObj }, { status: 500 })
   }
 }
