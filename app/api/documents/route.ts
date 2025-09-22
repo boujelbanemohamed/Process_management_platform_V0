@@ -10,6 +10,7 @@ function getSql() {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
     const processId = searchParams.get('processId')
     const type = searchParams.get('type')
     
@@ -30,6 +31,19 @@ export async function GET(request: NextRequest) {
     `
     
     let rows: any[] = []
+    if (id) {
+      rows = await sql`
+        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        LEFT JOIN processes p ON d.process_id = p.id
+        WHERE d.id = ${Number(id)}
+      `
+      if (rows.length === 0) {
+        return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      }
+      return NextResponse.json(rows[0])
+    }
     if (processId) {
       rows = await sql`
         SELECT d.*, u.name as uploaded_by_name, p.name as process_name
