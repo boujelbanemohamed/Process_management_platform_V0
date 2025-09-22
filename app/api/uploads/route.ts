@@ -51,4 +51,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET() {
+  try {
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    let dbOk = false
+    try {
+      await DatabaseService.query('SELECT 1')
+      dbOk = true
+    } catch {
+      dbOk = false
+    }
+    return NextResponse.json({ hasToken: Boolean(token), dbOk })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'diagnostic-failed', details: e?.message || String(e) }, { status: 500 })
+  }
+}
+
 
