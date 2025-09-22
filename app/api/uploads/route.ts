@@ -29,6 +29,21 @@ export async function POST(request: NextRequest) {
 
     const blob = await put(safeName, file, { access: "public", token })
 
+    // S'assurer que la table documents existe
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id BIGSERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50),
+        size BIGINT,
+        version VARCHAR(20),
+        uploaded_by BIGINT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        process_id BIGINT,
+        url VARCHAR(500)
+      )
+    `)
+
     // Persister en base
     await DatabaseService.query(
       `INSERT INTO documents (name, type, size, version, process_id, url, uploaded_by)

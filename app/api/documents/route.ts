@@ -14,6 +14,20 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     
     const sql = getSql()
+    // S'assurer que la table existe
+    await sql`
+      CREATE TABLE IF NOT EXISTS documents (
+        id BIGSERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50),
+        size BIGINT,
+        version VARCHAR(20),
+        uploaded_by BIGINT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        process_id BIGINT,
+        url VARCHAR(500)
+      )
+    `
     
     let query = `
       SELECT d.*, u.name as uploaded_by_name, p.name as process_name
@@ -42,10 +56,7 @@ export async function GET(request: NextRequest) {
     query += ` ORDER BY d.uploaded_at DESC`
     
     const documents = await sql.unsafe(query, params)
-    
-    // S'assurer que c'est un tableau
     const documentsArray = Array.isArray(documents) ? documents : []
-    
     return NextResponse.json(documentsArray)
   } catch (error) {
     console.error("Error fetching documents:", error)
