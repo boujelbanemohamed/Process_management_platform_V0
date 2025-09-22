@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { put } from "@vercel/blob"
-import { DatabaseService } from "@/lib/database-service"
+import { DatabaseService } from "@/lib/database"
 
 // Utiliser Node.js runtime pour simplifier l'accès aux variables d'env et éviter les incompatibilités
 export const runtime = "nodejs"
