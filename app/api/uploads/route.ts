@@ -2,12 +2,14 @@ import { NextResponse, type NextRequest } from "next/server"
 import { put } from "@vercel/blob"
 import { DatabaseService } from "@/lib/database-service"
 
-export const runtime = "edge"
+// Utiliser Node.js runtime pour simplifier l'accès aux variables d'env et éviter les incompatibilités
+export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   try {
     const token = process.env.BLOB_READ_WRITE_TOKEN
     if (!token) {
+      console.error("/api/uploads: BLOB_READ_WRITE_TOKEN manquant")
       return NextResponse.json({ error: "BLOB_READ_WRITE_TOKEN manquant" }, { status: 500 })
     }
 
@@ -44,8 +46,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: blob.url })
   } catch (error: any) {
-    console.error("Upload error:", error)
-    return NextResponse.json({ error: "Upload failed", details: error?.message }, { status: 500 })
+    console.error("/api/uploads error:", error)
+    return NextResponse.json({ error: "Upload failed", details: error?.message || String(error) }, { status: 500 })
   }
 }
 
