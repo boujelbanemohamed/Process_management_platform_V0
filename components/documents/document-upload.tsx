@@ -2,14 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { mockProcesses } from "@/lib/data"
 import { Upload, X, FileText, ArrowLeft } from "lucide-react"
 
 interface UploadFile {
@@ -23,6 +22,28 @@ export function DocumentUpload() {
   const router = useRouter()
   const [files, setFiles] = useState<UploadFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [processes, setProcesses] = useState<Array<{ id: number | string; name: string }>>([])
+  const [loadingProcesses, setLoadingProcesses] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const fetchProcesses = async () => {
+      try {
+        setLoadingProcesses(true)
+        const res = await fetch("/api/processes")
+        if (!res.ok) throw new Error("Erreur lors du chargement des processus")
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : []
+        setProcesses(list.map((p: any) => ({ id: p.id, name: p.name })))
+      } catch (e) {
+        console.error("Erreur chargement processus:", e)
+        setProcesses([])
+      } finally {
+        setLoadingProcesses(false)
+      }
+    }
+    fetchProcesses()
+  }, [])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || [])
@@ -32,7 +53,7 @@ export function DocumentUpload() {
       processId: "",
       description: "",
     }))
-    setFiles([...files, ...newFiles])
+    setFiles((prev) => [...prev, ...newFiles])
   }
 
   const removeFile = (id: string) => {
@@ -43,9 +64,13 @@ export function DocumentUpload() {
     setFiles(files.map((f) => (f.id === id ? { ...f, ...updates } : f)))
   }
 
+  const handleClickSelectFiles = () => {
+    fileInputRef.current?.click()
+  }
+
   const handleUpload = async () => {
     setIsUploading(true)
-    // Simulate upload process
+    // TODO: remplacer par appel réel à l'API d'upload
     await new Promise((resolve) => setTimeout(resolve, 2000))
     setIsUploading(false)
     setFiles([])
@@ -84,6 +109,7 @@ export function DocumentUpload() {
             <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-600 mb-4">Glissez-déposez vos fichiers ici ou cliquez pour sélectionner</p>
             <Input
+              ref={fileInputRef}
               type="file"
               multiple
               onChange={handleFileSelect}
@@ -91,11 +117,9 @@ export function DocumentUpload() {
               id="file-upload"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
             />
-            <Label htmlFor="file-upload">
-              <Button variant="outline" className="cursor-pointer bg-transparent">
-                Sélectionner des fichiers
-              </Button>
-            </Label>
+            <Button variant="outline" className="cursor-pointer bg-transparent" onClick={handleClickSelectFiles}>
+              Sélectionner des fichiers
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -141,8 +165,8 @@ export function DocumentUpload() {
                         className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
                       >
                         <option value="">Sélectionner un processus</option>
-                        {mockProcesses.map((process) => (
-                          <option key={process.id} value={process.id}>
+                        {processes.map((process) => (
+                          <option key={process.id} value={String(process.id)}>
                             {process.name}
                           </option>
                         ))}
