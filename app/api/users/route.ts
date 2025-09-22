@@ -37,16 +37,16 @@ export async function GET(request: NextRequest) {
         FROM users 
         WHERE email = ${normalizedEmail}
       `
-      
-      console.log("👥 Utilisateurs trouvés:", users.length)
+      const list = Array.isArray(users) ? users : []
+      console.log("👥 Utilisateurs trouvés:", list.length)
 
-      if (users.length === 0) {
+      if (list.length === 0) {
         console.log("❌ Aucun utilisateur trouvé")
         return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 })
       }
 
-      const user = users[0]
-      console.log("👤 Utilisateur trouvé:", user.name, "Hash présent:", !!user.password_hash)
+      const user = list[0]
+      console.log("👤 Utilisateur trouvé:", user?.name, "Hash présent:", !!user?.password_hash)
 
       // Vérifier le mot de passe
       if (!user.password_hash) {
@@ -54,7 +54,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Aucun mot de passe défini pour cet utilisateur" }, { status: 401 })
       }
 
-      const isValidPassword = await bcrypt.compare(password, user.password_hash)
+      let isValidPassword = false
+      try {
+        isValidPassword = await bcrypt.compare(password, user.password_hash)
+      } catch (e: any) {
+        console.error("❌ Erreur comparaison bcrypt:", e?.message || String(e))
+        return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 })
+      }
       console.log("🔑 Mot de passe valide:", isValidPassword)
       
       if (!isValidPassword) {
@@ -88,7 +94,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(users)
   } catch (error) {
     console.error("Error in users API:", error)
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to process request", details: (error as any)?.message || String(error) }, { status: 500 })
   }
 }
 
