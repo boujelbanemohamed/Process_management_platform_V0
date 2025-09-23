@@ -36,7 +36,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
           uploadedBy: String(data.uploaded_by || 1),
           processId: String(data.process_id || ''),
           description: data.description || '',
-          size: data.size || 0,
+          size: Number(data.size) || 0,
           version: data.version || '1.0',
           type: data.type || 'unknown',
           name: data.name || 'Sans nom',
@@ -163,8 +163,20 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                   <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
                   <p className="text-slate-600">Aperçu du document</p>
                   <p className="text-sm text-slate-500 mt-2">
-                    {document.type.toUpperCase()} • {formatFileSize(document.size)}
+                    {document.type?.toUpperCase() || 'UNKNOWN'} • {formatFileSize(document.size || 0)}
                   </p>
+                  {document.url && document.url !== '#' && (
+                    <div className="mt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(document.url, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ouvrir le document
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-4 text-left">
