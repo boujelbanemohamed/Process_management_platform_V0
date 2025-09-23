@@ -252,7 +252,7 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
               <FileText className="h-4 w-4 text-slate-500" />
               <span className="text-sm font-medium text-slate-600">Documents</span>
             </div>
-            <p className="text-slate-800 font-semibold mt-1">{processDocuments.length}</p>
+            <p className="text-slate-800 font-semibold mt-1">{documents.length}</p>
           </CardContent>
         </Card>
       </div>
