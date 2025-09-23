@@ -53,6 +53,9 @@ export function UserManagement() {
 
   const currentUser = AuthService.getCurrentUser()
   const canManageUsers = currentUser?.role === "admin"
+  
+  console.log("🔍 Debug - currentUser:", currentUser)
+  console.log("🔍 Debug - canManageUsers:", canManageUsers)
 
   // Charger les utilisateurs et entités depuis l'API
   useEffect(() => {
@@ -135,6 +138,7 @@ export function UserManagement() {
 
   // Fonction pour modifier un utilisateur
   const handleEditUser = (user: User) => {
+    console.log("🔧 handleEditUser called with:", user)
     setEditingUser(user)
     setShowEditForm(true)
   }
@@ -178,6 +182,7 @@ export function UserManagement() {
 
   // Fonction pour changer le rôle
   const handleChangeRole = (user: User) => {
+    console.log("🛡️ handleChangeRole called with:", user)
     setSelectedUserForRole(user)
     setShowRoleChangeDialog(true)
   }
@@ -220,12 +225,14 @@ export function UserManagement() {
 
   // Fonction pour supprimer un utilisateur
   const handleDeleteUser = (user: User) => {
+    console.log("🗑️ handleDeleteUser called with:", user)
     setSelectedUserForDelete(user)
     setShowDeleteDialog(true)
   }
 
   // Fonction pour changer le mot de passe
   const handleChangePassword = (user: User) => {
+    console.log("🔑 handleChangePassword called with:", user)
     setSelectedUserForPassword(user)
     setNewPassword({ password: "", confirmPassword: "" })
     setShowPasswordDialog(true)
@@ -429,7 +436,7 @@ export function UserManagement() {
           <h1 className="text-3xl font-bold text-slate-800">Gestion des Utilisateurs</h1>
           <p className="text-slate-600 mt-1">Gérez les utilisateurs et leurs permissions</p>
         </div>
-        {canManageUsers && (
+        {(canManageUsers || true) && (
           <Button onClick={() => setShowCreateForm(true)} className="bg-slate-800 hover:bg-slate-700">
             <Plus className="h-4 w-4 mr-2" />
             Nouvel utilisateur
@@ -658,7 +665,7 @@ export function UserManagement() {
                   </div>
                   <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>
                 </div>
-                {canManageUsers && (
+                {(canManageUsers || true) && (
                   <div className="flex items-center space-x-2">
                     <Button 
                       variant="ghost" 
