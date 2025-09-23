@@ -142,9 +142,26 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       const res = await fetch("/api/uploads", { method: "POST", body: fd })
       if (!res.ok) throw new Error("Échec de l'upload de la nouvelle version")
       const data = await res.json().catch(() => null)
+      
+      // Mettre à jour le document local avec les nouvelles données
+      if (data?.document) {
+        setDoc(prev => ({
+          ...prev,
+          name: data.document.name,
+          version: data.document.version,
+          type: data.document.type,
+          size: data.document.size,
+          url: data.document.url,
+          uploadedAt: new Date(data.document.uploaded_at)
+        }))
+        setFormData(prev => ({
+          ...prev,
+          name: data.document.name
+        }))
+      }
+      
       setPendingVersionName(file.name)
       toast({ title: "Nouvelle version prête", description: `${file.name} a été téléversé(e).` })
-      router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erreur inconnue")
     } finally {
