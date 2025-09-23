@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, type FormEvent, type ChangeEvent } from "react"
+import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,11 +16,13 @@ interface DocumentEditFormProps {
 
 export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [doc, setDoc] = useState<any | null>(null)
   const [processes, setProcesses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [pendingVersionName, setPendingVersionName] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     processId: "",
@@ -106,6 +109,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       if (!response.ok) {
         throw new Error("Erreur lors de la sauvegarde du document")
       }
+      toast({ title: "Modifications enregistrées", description: "Le document a été mis à jour avec succès." })
       router.push(`/documents/${documentId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue")
@@ -136,6 +140,9 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
 
       const res = await fetch("/api/uploads", { method: "POST", body: fd })
       if (!res.ok) throw new Error("Échec de l'upload de la nouvelle version")
+      const data = await res.json().catch(() => null)
+      setPendingVersionName(file.name)
+      toast({ title: "Nouvelle version prête", description: `${file.name} a été téléversé(e).` })
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erreur inconnue")
@@ -253,6 +260,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
               >
                 {isLoading ? "Téléchargement..." : "Sélectionner un fichier"}
               </Button>
+              {pendingVersionName && (
+                <div className="mt-3 text-left text-sm text-slate-700">
+                  Nouvelle version en attente d'enregistrement: <span className="font-medium">{pendingVersionName}</span>
+                </div>
+              )}
             </div>
 
             <div className="text-xs text-slate-500">
