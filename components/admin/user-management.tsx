@@ -141,6 +141,7 @@ export function UserManagement() {
     console.log("🔧 handleEditUser called with:", user)
     setEditingUser(user)
     setShowEditForm(true)
+    console.log("🔧 showEditForm should be true now")
   }
 
   // Fonction pour sauvegarder les modifications
@@ -185,6 +186,7 @@ export function UserManagement() {
     console.log("🛡️ handleChangeRole called with:", user)
     setSelectedUserForRole(user)
     setShowRoleChangeDialog(true)
+    console.log("🛡️ showRoleChangeDialog should be true now")
   }
 
   // Fonction pour sauvegarder le changement de rôle
@@ -228,6 +230,7 @@ export function UserManagement() {
     console.log("🗑️ handleDeleteUser called with:", user)
     setSelectedUserForDelete(user)
     setShowDeleteDialog(true)
+    console.log("🗑️ showDeleteDialog should be true now")
   }
 
   // Fonction pour changer le mot de passe
@@ -236,6 +239,7 @@ export function UserManagement() {
     setSelectedUserForPassword(user)
     setNewPassword({ password: "", confirmPassword: "" })
     setShowPasswordDialog(true)
+    console.log("🔑 showPasswordDialog should be true now")
   }
 
   // Fonction pour sauvegarder le nouveau mot de passe
@@ -760,6 +764,7 @@ export function UserManagement() {
       </div>
 
       {/* Formulaire d'édition d'utilisateur */}
+      {console.log("🔍 Rendering showEditForm:", showEditForm, "editingUser:", editingUser)}
       {showEditForm && editingUser && (
         <Card className="border-slate-200 bg-slate-50">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -853,6 +858,7 @@ export function UserManagement() {
       )}
 
       {/* Dialogue de changement de rôle */}
+      {console.log("🔍 Rendering showRoleChangeDialog:", showRoleChangeDialog, "selectedUserForRole:", selectedUserForRole)}
       {showRoleChangeDialog && selectedUserForRole && (
         <Card className="border-slate-200 bg-slate-50">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -895,6 +901,7 @@ export function UserManagement() {
       )}
 
       {/* Dialogue de suppression */}
+      {console.log("🔍 Rendering showDeleteDialog:", showDeleteDialog, "selectedUserForDelete:", selectedUserForDelete)}
       {showDeleteDialog && selectedUserForDelete && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -933,6 +940,7 @@ export function UserManagement() {
       )}
 
       {/* Dialogue de changement de mot de passe */}
+      {console.log("🔍 Rendering showPasswordDialog:", showPasswordDialog, "selectedUserForPassword:", selectedUserForPassword)}
       {showPasswordDialog && selectedUserForPassword && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader className="flex flex-row items-center justify-between">
