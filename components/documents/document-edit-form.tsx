@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -117,15 +117,17 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     }
   }
 
-  const handleNewVersion = async () => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const triggerFileDialog = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
     try {
       setIsLoading(true)
-      const input = document.getElementById("version-upload") as HTMLInputElement | null
-      const file = input?.files?.[0]
-      if (!file) {
-        alert("Veuillez sélectionner un fichier.")
-        return
-      }
       if (file.size > 10 * 1024 * 1024) {
         alert("Fichier trop volumineux (max 10 Mo)")
         return
@@ -138,12 +140,13 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
 
       const res = await fetch("/api/uploads", { method: "POST", body: fd })
       if (!res.ok) throw new Error("Échec de l'upload de la nouvelle version")
-
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erreur inconnue")
     } finally {
       setIsLoading(false)
+      // réinitialiser la valeur pour pouvoir re-sélectionner le même fichier si besoin
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
@@ -239,21 +242,21 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
               <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm text-slate-600 mb-3">Télécharger une nouvelle version</p>
               <Input
+                ref={fileInputRef}
                 type="file"
                 className="hidden"
                 id="version-upload"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={handleFileSelected}
               />
-              <Label htmlFor="version-upload">
-                <Button
-                  variant="outline"
-                  className="cursor-pointer bg-transparent"
-                  disabled={isLoading}
-                  onClick={handleNewVersion}
-                >
-                  {isLoading ? "Téléchargement..." : "Sélectionner un fichier"}
-                </Button>
-              </Label>
+              <Button
+                variant="outline"
+                className="cursor-pointer bg-transparent"
+                disabled={isLoading}
+                onClick={triggerFileDialog}
+              >
+                {isLoading ? "Téléchargement..." : "Sélectionner un fichier"}
+              </Button>
             </div>
 
             <div className="text-xs text-slate-500">
