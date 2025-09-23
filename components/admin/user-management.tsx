@@ -136,9 +136,22 @@ export function UserManagement() {
     setNewUser((prev) => ({ ...prev, password, confirmPassword: password }))
   }
 
+  // Fonction pour fermer tous les dialogues
+  const closeAllDialogs = () => {
+    setShowEditForm(false)
+    setShowRoleChangeDialog(false)
+    setShowDeleteDialog(false)
+    setShowPasswordDialog(false)
+    setEditingUser(null)
+    setSelectedUserForRole(null)
+    setSelectedUserForDelete(null)
+    setSelectedUserForPassword(null)
+  }
+
   // Fonction pour modifier un utilisateur
   const handleEditUser = (user: User) => {
     console.log("🔧 handleEditUser called with:", user)
+    closeAllDialogs()
     setEditingUser(user)
     setShowEditForm(true)
     console.log("🔧 showEditForm should be true now")
@@ -184,6 +197,7 @@ export function UserManagement() {
   // Fonction pour changer le rôle
   const handleChangeRole = (user: User) => {
     console.log("🛡️ handleChangeRole called with:", user)
+    closeAllDialogs()
     setSelectedUserForRole(user)
     setShowRoleChangeDialog(true)
     console.log("🛡️ showRoleChangeDialog should be true now")
@@ -228,6 +242,7 @@ export function UserManagement() {
   // Fonction pour supprimer un utilisateur
   const handleDeleteUser = (user: User) => {
     console.log("🗑️ handleDeleteUser called with:", user)
+    closeAllDialogs()
     setSelectedUserForDelete(user)
     setShowDeleteDialog(true)
     console.log("🗑️ showDeleteDialog should be true now")
@@ -236,6 +251,7 @@ export function UserManagement() {
   // Fonction pour changer le mot de passe
   const handleChangePassword = (user: User) => {
     console.log("🔑 handleChangePassword called with:", user)
+    closeAllDialogs()
     setSelectedUserForPassword(user)
     setNewPassword({ password: "", confirmPassword: "" })
     setShowPasswordDialog(true)
@@ -772,9 +788,9 @@ export function UserManagement() {
               <CardTitle className="text-slate-800">Modifier l'utilisateur</CardTitle>
               <CardDescription>Modifiez les informations de {editingUser.name}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setShowEditForm(false)} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
-            </Button>
+                   <Button variant="ghost" size="sm" onClick={closeAllDialogs} className="h-8 w-8 p-0">
+                     <X className="h-4 w-4" />
+                   </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={(e) => {
@@ -844,10 +860,10 @@ export function UserManagement() {
                   </select>
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowEditForm(false)}>
-                  Annuler
-                </Button>
+                     <div className="flex justify-end space-x-3 pt-4">
+                       <Button type="button" variant="outline" onClick={closeAllDialogs}>
+                         Annuler
+                       </Button>
                 <Button type="submit" className="bg-slate-800 hover:bg-slate-700">
                   Sauvegarder
                 </Button>
@@ -866,9 +882,9 @@ export function UserManagement() {
               <CardTitle className="text-slate-800">Changer le rôle</CardTitle>
               <CardDescription>Modifiez le rôle de {selectedUserForRole.name}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setShowRoleChangeDialog(false)} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
-            </Button>
+                   <Button variant="ghost" size="sm" onClick={closeAllDialogs} className="h-8 w-8 p-0">
+                     <X className="h-4 w-4" />
+                   </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -890,11 +906,11 @@ export function UserManagement() {
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" onClick={() => setShowRoleChangeDialog(false)}>
-                  Annuler
-                </Button>
-              </div>
+                     <div className="flex justify-end space-x-3 pt-4">
+                       <Button variant="outline" onClick={closeAllDialogs}>
+                         Annuler
+                       </Button>
+                     </div>
             </div>
           </CardContent>
         </Card>
@@ -911,9 +927,9 @@ export function UserManagement() {
                 Êtes-vous sûr de vouloir supprimer {selectedUserForDelete.name} ? Cette action est irréversible.
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setShowDeleteDialog(false)} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
-            </Button>
+                   <Button variant="ghost" size="sm" onClick={closeAllDialogs} className="h-8 w-8 p-0">
+                     <X className="h-4 w-4" />
+                   </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -922,10 +938,10 @@ export function UserManagement() {
                   <strong>Attention :</strong> Cette action supprimera définitivement l'utilisateur et toutes ses données associées.
                 </p>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                  Annuler
-                </Button>
+                     <div className="flex justify-end space-x-3 pt-4">
+                       <Button variant="outline" onClick={closeAllDialogs}>
+                         Annuler
+                       </Button>
                 <Button 
                   variant="destructive" 
                   onClick={handleConfirmDelete}
@@ -950,9 +966,9 @@ export function UserManagement() {
                 Définissez un nouveau mot de passe pour {selectedUserForPassword.name}
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setShowPasswordDialog(false)} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
-            </Button>
+                   <Button variant="ghost" size="sm" onClick={closeAllDialogs} className="h-8 w-8 p-0">
+                     <X className="h-4 w-4" />
+                   </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -985,10 +1001,10 @@ export function UserManagement() {
                   <strong>Note :</strong> L'utilisateur devra utiliser ce nouveau mot de passe lors de sa prochaine connexion.
                 </p>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-                  Annuler
-                </Button>
+                     <div className="flex justify-end space-x-3 pt-4">
+                       <Button variant="outline" onClick={closeAllDialogs}>
+                         Annuler
+                       </Button>
                 <Button 
                   onClick={handleSavePasswordChange}
                   disabled={!newPassword.password || newPassword.password !== newPassword.confirmPassword || newPassword.password.length < 8}
