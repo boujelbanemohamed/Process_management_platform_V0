@@ -71,14 +71,19 @@ export function UserManagement() {
           setUsers(mockUsers)
         }
         
-        // Charger les entités
-        const entitiesResponse = await fetch("/api/entities")
-        if (entitiesResponse.ok) {
-          const entitiesData = await entitiesResponse.json()
-          console.log("📥 Entités chargées:", entitiesData)
-          setEntities(entitiesData)
-        } else {
-          console.error("❌ Erreur chargement entités:", entitiesResponse.status)
+        // Charger les entités (optionnel)
+        try {
+          const entitiesResponse = await fetch("/api/entities")
+          if (entitiesResponse.ok) {
+            const entitiesData = await entitiesResponse.json()
+            console.log("📥 Entités chargées:", entitiesData)
+            setEntities(entitiesData)
+          } else {
+            console.warn("⚠️ Erreur chargement entités:", entitiesResponse.status)
+            setEntities([])
+          }
+        } catch (entitiesError) {
+          console.warn("⚠️ Erreur chargement entités:", entitiesError)
           setEntities([])
         }
       } catch (error) {
@@ -648,7 +653,7 @@ export function UserManagement() {
                     <h3 className="font-medium text-slate-800">{user.name}</h3>
                     <p className="text-sm text-slate-500">{user.email}</p>
                     <p className="text-xs text-slate-400">
-                      Entité: {(user as any).entity_name || 'N/A'}
+                      Entité: {(user as any).entity_id ? `ID: ${(user as any).entity_id}` : 'N/A'}
                     </p>
                   </div>
                   <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>

@@ -14,7 +14,7 @@ async function ensureEntitiesTable(sql: any) {
       name VARCHAR(255) NOT NULL,
       type VARCHAR(50) NOT NULL DEFAULT 'department',
       description TEXT,
-      parent_id BIGINT REFERENCES entities(id),
+      parent_id BIGINT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -32,10 +32,7 @@ export async function GET(request: NextRequest) {
     if (id) {
       // Récupérer une entité spécifique
       const entity = await sql`
-        SELECT e.*, p.name as parent_name
-        FROM entities e
-        LEFT JOIN entities p ON e.parent_id = p.id
-        WHERE e.id = ${Number(id)}
+        SELECT * FROM entities WHERE id = ${Number(id)}
       `
       
       if (entity.length === 0) {
@@ -46,10 +43,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Récupérer toutes les entités
       const entities = await sql`
-        SELECT e.*, p.name as parent_name
-        FROM entities e
-        LEFT JOIN entities p ON e.parent_id = p.id
-        ORDER BY e.created_at DESC
+        SELECT * FROM entities ORDER BY created_at DESC
       `
       return NextResponse.json(entities)
     }

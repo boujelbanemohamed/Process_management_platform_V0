@@ -17,7 +17,7 @@ async function ensureUsersTable(sql: any) {
       role VARCHAR(50) NOT NULL DEFAULT 'reader',
       password_hash TEXT,
       avatar VARCHAR(255),
-      entity_id BIGINT REFERENCES entities(id),
+      entity_id BIGINT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -25,7 +25,7 @@ async function ensureUsersTable(sql: any) {
   // Ajouter la colonne entity_id si elle n'existe pas
   await sql`
     ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS entity_id BIGINT REFERENCES entities(id)
+    ADD COLUMN IF NOT EXISTS entity_id BIGINT
   `
 }
 
@@ -55,10 +55,9 @@ export async function GET(request: NextRequest) {
 
       // Rechercher l'utilisateur par email
       const users = await sql`
-        SELECT u.id, u.name, u.email, u.role, u.avatar, u.password_hash, u.entity_id, e.name as entity_name
-        FROM users u
-        LEFT JOIN entities e ON u.entity_id = e.id
-        WHERE u.email = ${normalizedEmail}
+        SELECT id, name, email, role, avatar, password_hash, entity_id
+        FROM users 
+        WHERE email = ${normalizedEmail}
       `
       const list = Array.isArray(users) ? users : []
       console.log("👥 Utilisateurs trouvés:", list.length)
@@ -102,7 +101,6 @@ export async function GET(request: NextRequest) {
           role: user.role,
           avatar: user.avatar,
           entity_id: user.entity_id ? String(user.entity_id) : null,
-          entity_name: user.entity_name || null,
         }
       }
       console.log("✅ Connexion réussie:", response)
@@ -113,10 +111,9 @@ export async function GET(request: NextRequest) {
     const sql = getSql()
     await ensureUsersTable(sql)
     const users = await sql`
-      SELECT u.id, u.name, u.email, u.role, u.avatar, u.entity_id, u.created_at, u.updated_at, e.name as entity_name
-      FROM users u
-      LEFT JOIN entities e ON u.entity_id = e.id
-      ORDER BY u.created_at DESC
+      SELECT id, name, email, role, avatar, entity_id, created_at, updated_at
+      FROM users 
+      ORDER BY created_at DESC
     `
     return NextResponse.json(users)
   } catch (error) {
