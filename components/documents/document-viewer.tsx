@@ -92,10 +92,11 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
   }
 
   const handleDownload = () => {
-    if (!document?.url) return
+    const directUrl = document?.url
+    const fallbackUrl = `/api/documents/download?id=${documentId}`
     const link = window.document.createElement("a")
-    link.href = document.url
-    link.download = document.name || "document"
+    link.href = directUrl || fallbackUrl
+    if (directUrl) link.download = document?.name || "document"
     link.target = "_blank"
     window.document.body.appendChild(link)
     link.click()
