@@ -111,26 +111,22 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log("PUT /api/documents body:", body)
+    console.log("PUT /api/documents body:", JSON.stringify(body, null, 2))
     
-    const { id, name, description, type, size, version, processId, url } = body
+    const { id, name, description, processId } = body
     
     if (!id) {
       return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
     }
     
     const sql = getSql()
-    console.log("Updating document ID:", id, "with data:", { name, description, processId })
+    console.log("Updating document ID:", id, "name:", name, "description:", description, "processId:", processId)
 
+    // Mise à jour simple sans les champs optionnels
     const result = await sql`
       UPDATE documents 
       SET name = ${name || ''}, 
-          description = ${description || null},
-          type = ${type || null}, 
-          size = ${size || null}, 
-          process_id = ${processId ? Number(processId) : null}, 
-          url = ${url || null},
-          updated_at = CURRENT_TIMESTAMP
+          description = ${description || null}
       WHERE id = ${Number(id)}
       RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
@@ -144,12 +140,13 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result[0])
   } catch (error: any) {
     console.error("Error updating document:", error)
+    console.error("Error message:", error.message)
+    console.error("Error code:", error.code)
     console.error("Error stack:", error.stack)
     return NextResponse.json({ 
       error: "Failed to update document", 
       details: error.message,
-      code: error.code,
-      stack: error.stack
+      code: error.code
     }, { status: 500 })
   }
 }
