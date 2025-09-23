@@ -167,6 +167,12 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                   </p>
                 </div>
               </div>
+              {document.description && (
+                <div className="mt-4 text-left">
+                  <p className="text-sm font-medium text-slate-700 mb-1">Description</p>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{document.description}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
