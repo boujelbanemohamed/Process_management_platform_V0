@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { AuthService } from "@/lib/auth"
 import { DEFAULT_ROLES, PERMISSIONS } from "@/lib/permissions"
 import type { User } from "@/types"
-import { Search, Plus, Edit, Trash2, Shield, Users, Key, X, Lock } from "lucide-react"
+import { Search, Plus, Edit, Trash2, Shield, Users, Key, X, Lock, Building2 } from "lucide-react"
 
 // Mock users data
 const mockUsers: User[] = [
@@ -125,6 +125,13 @@ export function UserManagement() {
   const getRoleLabel = (role: string) => {
     const roleObj = DEFAULT_ROLES.find((r) => r.id === role)
     return roleObj?.name || role
+  }
+
+  // Fonction pour obtenir le nom de l'entité à partir de son ID
+  const getEntityName = (entityId: string | number | null) => {
+    if (!entityId) return "N/A"
+    const entity = entities.find(e => String(e.id) === String(entityId))
+    return entity ? entity.name : "N/A"
   }
 
   const generateRandomPassword = () => {
@@ -679,9 +686,12 @@ export function UserManagement() {
                   <div>
                     <h3 className="font-medium text-slate-800">{user.name}</h3>
                     <p className="text-sm text-slate-500">{user.email}</p>
-                    <p className="text-xs text-slate-400">
-                      Entité: {(user as any).entity_id ? `ID: ${(user as any).entity_id}` : 'N/A'}
-                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Building2 className="h-3 w-3 text-slate-400" />
+                      <p className="text-xs text-slate-400">
+                        Entité: {getEntityName((user as any).entity_id)}
+                      </p>
+                    </div>
                   </div>
                   <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>
                 </div>
