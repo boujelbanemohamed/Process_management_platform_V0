@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState, type FormEvent, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react"
-import type { Document } from "@/types"
 
 interface DocumentEditFormProps {
   documentId: string
@@ -18,7 +15,7 @@ interface DocumentEditFormProps {
 
 export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter()
-  const [document, setDocument] = useState<Document | null>(null)
+  const [doc, setDoc] = useState<any | null>(null)
   const [processes, setProcesses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +45,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
           type: data.type || "unknown",
           url: data.url || "#",
         }
-        setDocument(normalized)
+        setDoc(normalized)
         setFormData({ name: normalized.name, processId: normalized.processId, description: "" })
 
         // Charger les processus pour la liste déroulante
@@ -84,7 +81,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     )
   }
 
-  if (!document) {
+  if (!doc) {
     return (
       <div className="text-center py-8">
         <p className="text-slate-500">Document non trouvé</p>
@@ -92,7 +89,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     try {
@@ -117,13 +114,12 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     }
   }
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-
   const triggerFileDialog = () => {
-    fileInputRef.current?.click()
+    const el = window.document.getElementById("version-upload") as HTMLInputElement | null
+    el?.click()
   }
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     try {
@@ -146,7 +142,8 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     } finally {
       setIsLoading(false)
       // réinitialiser la valeur pour pouvoir re-sélectionner le même fichier si besoin
-      if (fileInputRef.current) fileInputRef.current.value = ""
+      const el = window.document.getElementById("version-upload") as HTMLInputElement | null
+      if (el) el.value = ""
     }
   }
 
@@ -160,7 +157,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Modifier le document</h1>
-          <p className="text-slate-600 mt-1">{document.name}</p>
+          <p className="text-slate-600 mt-1">{doc.name}</p>
         </div>
       </div>
 
@@ -233,16 +230,15 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
           <CardContent className="space-y-4">
               <div className="text-sm text-slate-600">
               <p>
-                Version actuelle: <span className="font-medium">{document.version}</span>
+                Version actuelle: <span className="font-medium">{doc.version}</span>
               </p>
-              <p>Dernière modification: {document.uploadedAt.toLocaleDateString("fr-FR")}</p>
+              <p>Dernière modification: {doc.uploadedAt.toLocaleDateString("fr-FR")}</p>
             </div>
 
             <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
               <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm text-slate-600 mb-3">Télécharger une nouvelle version</p>
               <Input
-                ref={fileInputRef}
                 type="file"
                 className="hidden"
                 id="version-upload"
