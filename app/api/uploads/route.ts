@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
 
       const updated = await sql`
         UPDATE documents
-        SET url = ${blob.url},
+        SET name = ${file.name},
+            url = ${blob.url},
             type = ${file.type || "application/octet-stream"},
             size = ${file.size},
             version = ${nextVersion},
