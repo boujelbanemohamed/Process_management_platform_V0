@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +13,7 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ documentId }: DocumentViewerProps) {
+  const router = useRouter()
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -89,6 +91,37 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
     return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
   }
 
+  const handleDownload = () => {
+    if (!document?.url) return
+    const link = window.document.createElement("a")
+    link.href = document.url
+    link.download = document.name || "document"
+    link.target = "_blank"
+    window.document.body.appendChild(link)
+    link.click()
+    window.document.body.removeChild(link)
+  }
+
+  const handleEdit = () => {
+    router.push(`/documents/${documentId}/edit`)
+  }
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = window.location.href
+      if (navigator.share) {
+        await navigator.share({ title: document?.name || "Document", url: shareUrl })
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl)
+        alert("Lien copié dans le presse-papiers")
+      } else {
+        prompt("Copiez le lien:", shareUrl)
+      }
+    } catch (e) {
+      console.error("Share failed", e)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -98,15 +131,15 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
           <p className="text-slate-600 mt-1">Version {document.version}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleShare}>
             <Share className="h-4 w-4 mr-2" />
             Partager
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Modifier
           </Button>
-          <Button size="sm" className="bg-slate-800 hover:bg-slate-700">
+          <Button size="sm" className="bg-slate-800 hover:bg-slate-700" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Télécharger
           </Button>
