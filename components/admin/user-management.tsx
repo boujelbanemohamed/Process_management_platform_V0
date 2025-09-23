@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { AuthService } from "@/lib/auth"
 import { DEFAULT_ROLES, PERMISSIONS } from "@/lib/permissions"
 import type { User } from "@/types"
-import { Search, Plus, Edit, Trash2, Shield, Users, Key, X } from "lucide-react"
+import { Search, Plus, Edit, Trash2, Shield, Users, Key, X, Lock } from "lucide-react"
 
 // Mock users data
 const mockUsers: User[] = [
@@ -35,6 +35,12 @@ export function UserManagement() {
   const [selectedUserForRole, setSelectedUserForRole] = useState<User | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedUserForDelete, setSelectedUserForDelete] = useState<User | null>(null)
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState({
+    password: "",
+    confirmPassword: "",
+  })
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -211,6 +217,58 @@ export function UserManagement() {
   const handleDeleteUser = (user: User) => {
     setSelectedUserForDelete(user)
     setShowDeleteDialog(true)
+  }
+
+  // Fonction pour changer le mot de passe
+  const handleChangePassword = (user: User) => {
+    setSelectedUserForPassword(user)
+    setNewPassword({ password: "", confirmPassword: "" })
+    setShowPasswordDialog(true)
+  }
+
+  // Fonction pour sauvegarder le nouveau mot de passe
+  const handleSavePasswordChange = async () => {
+    if (!selectedUserForPassword) return
+
+    if (!newPassword.password || newPassword.password.length < 8) {
+      alert("Le mot de passe doit contenir au moins 8 caractères")
+      return
+    }
+
+    if (newPassword.password !== newPassword.confirmPassword) {
+      alert("Les mots de passe ne correspondent pas")
+      return
+    }
+
+    try {
+      console.log("🔑 Changement de mot de passe pour:", selectedUserForPassword.id)
+      
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "change-password",
+          userId: selectedUserForPassword.id,
+          newPassword: newPassword.password,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error || `Erreur serveur: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("✅ Mot de passe changé:", result)
+
+      setShowPasswordDialog(false)
+      setSelectedUserForPassword(null)
+      setNewPassword({ password: "", confirmPassword: "" })
+      alert("Mot de passe changé avec succès !")
+    } catch (err: any) {
+      console.error("❌ Erreur changement de mot de passe:", err)
+      alert(`Erreur lors du changement de mot de passe: ${err.message || err}`)
+    }
   }
 
   // Fonction pour confirmer la suppression
@@ -615,6 +673,15 @@ export function UserManagement() {
                     >
                       <Shield className="h-4 w-4" />
                     </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleChangePassword(user)}
+                      title="Changer le mot de passe"
+                      className="text-orange-600 hover:text-orange-800"
+                    >
+                      <Lock className="h-4 w-4" />
+                    </Button>
                     {user.id !== currentUser?.id && (
                       <Button 
                         variant="ghost" 
@@ -846,6 +913,68 @@ export function UserManagement() {
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Supprimer définitivement
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dialogue de changement de mot de passe */}
+      {showPasswordDialog && selectedUserForPassword && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-orange-800">Changer le mot de passe</CardTitle>
+              <CardDescription>
+                Définissez un nouveau mot de passe pour {selectedUserForPassword.name}
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowPasswordDialog(false)} className="h-8 w-8 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Minimum 8 caractères"
+                  value={newPassword.password}
+                  onChange={(e) => setNewPassword(prev => ({ ...prev, password: e.target.value }))}
+                  minLength={8}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Confirmer le nouveau mot de passe</Label>
+                <Input
+                  id="confirm-new-password"
+                  type="password"
+                  placeholder="Répéter le mot de passe"
+                  value={newPassword.confirmPassword}
+                  onChange={(e) => setNewPassword(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                />
+              </div>
+              {newPassword.password && newPassword.confirmPassword && newPassword.password !== newPassword.confirmPassword && (
+                <p className="text-sm text-red-600">Les mots de passe ne correspondent pas</p>
+              )}
+              <div className="p-4 bg-orange-100 rounded-lg">
+                <p className="text-sm text-orange-800">
+                  <strong>Note :</strong> L'utilisateur devra utiliser ce nouveau mot de passe lors de sa prochaine connexion.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleSavePasswordChange}
+                  disabled={!newPassword.password || newPassword.password !== newPassword.confirmPassword || newPassword.password.length < 8}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  Changer le mot de passe
                 </Button>
               </div>
             </div>

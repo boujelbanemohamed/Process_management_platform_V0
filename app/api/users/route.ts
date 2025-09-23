@@ -174,6 +174,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result[0])
     }
 
+    // Si c'est un changement de mot de passe
+    if (action === 'change-password') {
+      const { userId: changePasswordUserId, newPassword } = body
+      
+      if (!changePasswordUserId || !newPassword) {
+        return NextResponse.json({ error: "User ID and new password required" }, { status: 400 })
+      }
+
+      if (newPassword.length < 8) {
+        return NextResponse.json({ error: "Password too short" }, { status: 400 })
+      }
+
+      const sql = getSql()
+      const passwordHash = await bcrypt.hash(newPassword, 10)
+      
+      const result = await sql`
+        UPDATE users 
+        SET password_hash = ${passwordHash}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${changePasswordUserId}
+        RETURNING id, name, email, role, avatar, entity_id, created_at, updated_at
+      `
+
+      if (result.length === 0) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ success: true, updatedUser: result[0] })
+    }
+
     // Si c'est une suppression d'utilisateur
     if (action === 'delete-user') {
       const { userId: deleteUserId } = body
