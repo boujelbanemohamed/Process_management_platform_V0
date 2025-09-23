@@ -120,7 +120,7 @@ export async function PUT(request: NextRequest) {
     
     // Récupérer la version actuelle pour l'incrémenter
     const currentDoc = await sql`
-      SELECT version FROM documents WHERE id = ${id}
+      SELECT version FROM documents WHERE id = ${Number(id)}
     `
     const currentVersion = currentDoc[0]?.version || "1.0"
     const nextVersion = (() => {
@@ -136,10 +136,10 @@ export async function PUT(request: NextRequest) {
           type = ${type || null}, 
           size = ${size || null}, 
           version = ${nextVersion}, 
-          process_id = ${processId || null}, 
+          process_id = ${processId ? Number(processId) : null}, 
           url = ${url || null},
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
+      WHERE id = ${Number(id)}
       RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
     
@@ -148,9 +148,13 @@ export async function PUT(request: NextRequest) {
     }
     
     return NextResponse.json(result[0])
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating document:", error)
-    return NextResponse.json({ error: "Failed to update document" }, { status: 500 })
+    return NextResponse.json({ 
+      error: "Failed to update document", 
+      details: error.message,
+      code: error.code 
+    }, { status: 500 })
   }
 }
 
