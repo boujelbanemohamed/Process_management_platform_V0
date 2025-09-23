@@ -45,6 +45,7 @@ export function DocumentList() {
           return {
             id: String(d.id),
             name: d.name,
+            description: d.description || '',
             type: ext || 'file',
             size: Number(d.size || 0),
             version: d.version || '1.0',
@@ -223,10 +224,13 @@ export function DocumentList() {
                       <span className="text-xs text-slate-500">{formatFileSize(document.size)}</span>
                       <span className="text-xs text-slate-500">{document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString('fr-FR') : '—'}</span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
                         {getProcessName(document)}
                       </Badge>
+                      {document.description && (
+                        <span className="text-xs text-slate-500 truncate">{document.description}</span>
+                      )}
                     </div>
                   </div>
                 </div>

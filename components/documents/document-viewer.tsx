@@ -33,6 +33,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
           uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
           uploadedBy: String(data.uploaded_by || 1),
           processId: String(data.process_id || ''),
+          description: data.description || '',
           size: data.size || 0,
           version: data.version || '1.0',
           type: data.type || 'unknown',
@@ -148,6 +149,11 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                 <Badge variant="outline" className="mt-1">
                   {document.process_name || "Processus inconnu"}
                 </Badge>
+                {document.description && (
+                  <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">
+                    {document.description}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Type de fichier</p>

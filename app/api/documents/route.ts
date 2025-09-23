@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       CREATE TABLE IF NOT EXISTS documents (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        description TEXT,
         type VARCHAR(50),
         size BIGINT,
         version VARCHAR(20),
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest) {
         url VARCHAR(500)
       )
     `
+    // Migration douce: s'assurer que la colonne description existe
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
     
     let rows: any[] = []
     if (id) {
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, type, size, version, uploadedBy, processId, url } = await request.json()
+    const { name, description, type, size, version, uploadedBy, processId, url } = await request.json()
     
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -93,9 +96,9 @@ export async function POST(request: NextRequest) {
     const userId = uploadedBy || 1
     
     const result = await sql`
-      INSERT INTO documents (name, type, size, version, uploaded_by, process_id, url)
-      VALUES (${name}, ${type || null}, ${size || null}, ${version || null}, ${userId}, ${processId || null}, ${url || null})
-      RETURNING id, name, type, size, version, uploaded_by, uploaded_at, process_id, url
+      INSERT INTO documents (name, description, type, size, version, uploaded_by, process_id, url)
+      VALUES (${name}, ${description || null}, ${type || null}, ${size || null}, ${version || null}, ${userId}, ${processId || null}, ${url || null})
+      RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
     
     return NextResponse.json(result[0], { status: 201 })
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, name, type, size, version, processId, url } = await request.json()
+    const { id, name, description, type, size, version, processId, url } = await request.json()
     
     if (!id) {
       return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
@@ -118,13 +121,14 @@ export async function PUT(request: NextRequest) {
     const result = await sql`
       UPDATE documents 
       SET name = ${name || ''}, 
+          description = ${description || null},
           type = ${type || null}, 
           size = ${size || null}, 
           version = ${version || null}, 
           process_id = ${processId || null}, 
           url = ${url || null}
       WHERE id = ${id}
-      RETURNING id, name, type, size, version, uploaded_by, uploaded_at, process_id, url
+      RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
     
     if (result.length === 0) {

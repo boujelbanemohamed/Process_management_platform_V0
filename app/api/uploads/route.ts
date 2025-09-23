@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       CREATE TABLE IF NOT EXISTS documents (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        description TEXT,
         type VARCHAR(50),
         size BIGINT,
         version VARCHAR(20),
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         url VARCHAR(500)
       )
     `
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
 
     // Persister en base avec Neon
     console.log("Inserting document with data:", {
@@ -61,9 +63,9 @@ export async function POST(request: NextRequest) {
     })
     
     const result = await sql`
-      INSERT INTO documents (name, type, size, version, process_id, url, uploaded_by)
-      VALUES (${file.name}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
-      RETURNING id, name, type, size, version, process_id, url, uploaded_by, uploaded_at
+      INSERT INTO documents (name, description, type, size, version, process_id, url, uploaded_by)
+      VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
+      RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
     `
 
     console.log("/api/uploads inserted result:", result)
