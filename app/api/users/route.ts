@@ -17,9 +17,15 @@ async function ensureUsersTable(sql: any) {
       role VARCHAR(50) NOT NULL DEFAULT 'reader',
       password_hash TEXT,
       avatar VARCHAR(255),
+      entity_id BIGINT REFERENCES entities(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `
+  // Ajouter la colonne entity_id si elle n'existe pas
+  await sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS entity_id BIGINT REFERENCES entities(id)
   `
 }
 
@@ -49,9 +55,10 @@ export async function GET(request: NextRequest) {
 
       // Rechercher l'utilisateur par email
       const users = await sql`
-        SELECT id, name, email, role, avatar, password_hash
-        FROM users 
-        WHERE email = ${normalizedEmail}
+        SELECT u.id, u.name, u.email, u.role, u.avatar, u.password_hash, u.entity_id, e.name as entity_name
+        FROM users u
+        LEFT JOIN entities e ON u.entity_id = e.id
+        WHERE u.email = ${normalizedEmail}
       `
       const list = Array.isArray(users) ? users : []
       console.log("👥 Utilisateurs trouvés:", list.length)
@@ -94,6 +101,8 @@ export async function GET(request: NextRequest) {
           email: user.email,
           role: user.role,
           avatar: user.avatar,
+          entity_id: user.entity_id ? String(user.entity_id) : null,
+          entity_name: user.entity_name || null,
         }
       }
       console.log("✅ Connexion réussie:", response)
@@ -104,9 +113,10 @@ export async function GET(request: NextRequest) {
     const sql = getSql()
     await ensureUsersTable(sql)
     const users = await sql`
-      SELECT id, name, email, role, avatar, created_at, updated_at 
-      FROM users 
-      ORDER BY created_at DESC
+      SELECT u.id, u.name, u.email, u.role, u.avatar, u.entity_id, u.created_at, u.updated_at, e.name as entity_name
+      FROM users u
+      LEFT JOIN entities e ON u.entity_id = e.id
+      ORDER BY u.created_at DESC
     `
     return NextResponse.json(users)
   } catch (error) {
@@ -118,7 +128,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, role, password, action, userId, newRole } = body
+    const { name, email, role, password, entityId, action, userId, newRole } = body
 
     // Si c'est une mise à jour de rôle
     if (action === 'update-role') {
@@ -143,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     // Si c'est une mise à jour d'utilisateur
     if (action === 'update-user') {
-      const { userId: updateUserId, name, email, role } = body
+      const { userId: updateUserId, name, email, role, entityId } = body
       
       if (!updateUserId) {
         return NextResponse.json({ error: "User ID required" }, { status: 400 })
@@ -152,9 +162,9 @@ export async function POST(request: NextRequest) {
       const sql = getSql()
       const result = await sql`
         UPDATE users 
-        SET name = ${name || ''}, email = ${email || ''}, role = ${role || ''}, updated_at = CURRENT_TIMESTAMP
+        SET name = ${name || ''}, email = ${email || ''}, role = ${role || ''}, entity_id = ${entityId ? Number(entityId) : null}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${updateUserId}
-        RETURNING id, name, email, role, avatar, created_at, updated_at
+        RETURNING id, name, email, role, avatar, entity_id, created_at, updated_at
       `
 
       if (result.length === 0) {
@@ -205,9 +215,9 @@ export async function POST(request: NextRequest) {
     let result
     try {
       result = await sql`
-        INSERT INTO users (name, email, role, password_hash, avatar)
-        VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
-        RETURNING id, name, email, role, avatar, created_at, updated_at
+        INSERT INTO users (name, email, role, password_hash, avatar, entity_id)
+        VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png', ${entityId ? Number(entityId) : null})
+        RETURNING id, name, email, role, avatar, entity_id, created_at, updated_at
       `
     } catch (e: any) {
       // Si la table n'existe pas (42P01), la créer puis réessayer une fois
@@ -215,9 +225,9 @@ export async function POST(request: NextRequest) {
         console.warn('users table missing, creating then retrying...')
         await ensureUsersTable(sql)
         result = await sql`
-          INSERT INTO users (name, email, role, password_hash, avatar)
-          VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png')
-          RETURNING id, name, email, role, avatar, created_at, updated_at
+          INSERT INTO users (name, email, role, password_hash, avatar, entity_id)
+          VALUES (${name}, ${normalizedEmail}, ${role}, ${passwordHash}, '/professional-avatar.png', ${entityId ? Number(entityId) : null})
+          RETURNING id, name, email, role, avatar, entity_id, created_at, updated_at
         `
       } else {
         throw e

@@ -24,6 +24,7 @@ const mockUsers: User[] = [
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
+  const [entities, setEntities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
@@ -38,6 +39,7 @@ export function UserManagement() {
     name: "",
     email: "",
     role: "reader",
+    entityId: "",
     password: "",
     confirmPassword: "",
     sendInvitation: true,
@@ -46,31 +48,43 @@ export function UserManagement() {
   const currentUser = AuthService.getCurrentUser()
   const canManageUsers = currentUser?.role === "admin"
 
-  // Charger les utilisateurs depuis l'API
+  // Charger les utilisateurs et entités depuis l'API
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadData = async () => {
       try {
-        console.log("🔄 Chargement des utilisateurs...")
-        const response = await fetch("/api/users")
-        if (response.ok) {
-          const data = await response.json()
-          console.log("📥 Utilisateurs chargés:", data)
-          setUsers(data)
+        console.log("🔄 Chargement des données...")
+        
+        // Charger les utilisateurs
+        const usersResponse = await fetch("/api/users")
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json()
+          console.log("📥 Utilisateurs chargés:", usersData)
+          setUsers(usersData)
         } else {
-          console.error("❌ Erreur chargement utilisateurs:", response.status)
-          // Fallback sur les données mockées en cas d'erreur
+          console.error("❌ Erreur chargement utilisateurs:", usersResponse.status)
           setUsers(mockUsers)
         }
+        
+        // Charger les entités
+        const entitiesResponse = await fetch("/api/entities")
+        if (entitiesResponse.ok) {
+          const entitiesData = await entitiesResponse.json()
+          console.log("📥 Entités chargées:", entitiesData)
+          setEntities(entitiesData)
+        } else {
+          console.error("❌ Erreur chargement entités:", entitiesResponse.status)
+          setEntities([])
+        }
       } catch (error) {
-        console.error("❌ Erreur chargement utilisateurs:", error)
-        // Fallback sur les données mockées en cas d'erreur
+        console.error("❌ Erreur chargement données:", error)
         setUsers(mockUsers)
+        setEntities([])
       } finally {
         setLoading(false)
       }
     }
 
-    loadUsers()
+    loadData()
   }, [])
 
   const filteredUsers = users.filter((user) => {
@@ -128,6 +142,7 @@ export function UserManagement() {
           name: updatedUser.name,
           email: updatedUser.email,
           role: updatedUser.role,
+          entityId: (updatedUser as any).entityId || null,
         }),
       })
 
@@ -266,6 +281,7 @@ export function UserManagement() {
           name: newUser.name.trim(),
           email: newUser.email.trim().toLowerCase(),
           role: newUser.role,
+          entityId: newUser.entityId || null,
           password: newUser.sendInvitation ? undefined : newUser.password,
         }),
       })
@@ -338,7 +354,7 @@ export function UserManagement() {
       alert(`Utilisateur créé avec succès ! Mot de passe: ${newUser.password}`)
     }
 
-    setNewUser({ name: "", email: "", role: "reader", password: "", confirmPassword: "", sendInvitation: true })
+    setNewUser({ name: "", email: "", role: "reader", entityId: "", password: "", confirmPassword: "", sendInvitation: true })
     setShowCreateForm(false)
   }
 
@@ -396,20 +412,38 @@ export function UserManagement() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Rôle</Label>
-                <select
-                  id="role"
-                  value={newUser.role}
-                  onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  {DEFAULT_ROLES.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name} - {role.description}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Rôle</Label>
+                  <select
+                    id="role"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  >
+                    {DEFAULT_ROLES.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name} - {role.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="entity">Entité</Label>
+                  <select
+                    id="entity"
+                    value={newUser.entityId}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, entityId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  >
+                    <option value="">Sélectionner une entité (optionnel)</option>
+                    {entities.map((entity) => (
+                      <option key={entity.id} value={entity.id}>
+                        {entity.name} ({entity.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-4 p-4 bg-white rounded-lg border border-slate-200">
@@ -555,6 +589,9 @@ export function UserManagement() {
                   <div>
                     <h3 className="font-medium text-slate-800">{user.name}</h3>
                     <p className="text-sm text-slate-500">{user.email}</p>
+                    <p className="text-xs text-slate-400">
+                      Entité: {(user as any).entity_name || 'N/A'}
+                    </p>
                   </div>
                   <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>
                 </div>
@@ -664,7 +701,8 @@ export function UserManagement() {
                 name: formData.get('name') as string,
                 email: formData.get('email') as string,
                 role: formData.get('role') as string,
-              }
+                entityId: formData.get('entityId') as string,
+              } as any
               handleSaveUser(updatedUser)
             }} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -689,20 +727,38 @@ export function UserManagement() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-role">Rôle</Label>
-                <select
-                  id="edit-role"
-                  name="role"
-                  defaultValue={editingUser.role}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  {DEFAULT_ROLES.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name} - {role.description}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Rôle</Label>
+                  <select
+                    id="edit-role"
+                    name="role"
+                    defaultValue={editingUser.role}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  >
+                    {DEFAULT_ROLES.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name} - {role.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-entity">Entité</Label>
+                  <select
+                    id="edit-entity"
+                    name="entityId"
+                    defaultValue={(editingUser as any).entity_id || ""}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  >
+                    <option value="">Aucune entité</option>
+                    {entities.map((entity) => (
+                      <option key={entity.id} value={entity.id}>
+                        {entity.name} ({entity.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowEditForm(false)}>
