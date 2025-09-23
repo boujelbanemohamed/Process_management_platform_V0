@@ -118,12 +118,33 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   }
 
   const handleNewVersion = async () => {
-    setIsLoading(true)
+    try {
+      setIsLoading(true)
+      const input = document.getElementById("version-upload") as HTMLInputElement | null
+      const file = input?.files?.[0]
+      if (!file) {
+        alert("Veuillez sélectionner un fichier.")
+        return
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Fichier trop volumineux (max 10 Mo)")
+        return
+      }
+      const fd = new FormData()
+      fd.append("file", file)
+      if (formData.processId) fd.append("processId", formData.processId)
+      fd.append("description", formData.description)
+      fd.append("existingId", documentId)
 
-    // Simulate new version upload
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+      const res = await fetch("/api/uploads", { method: "POST", body: fd })
+      if (!res.ok) throw new Error("Échec de l'upload de la nouvelle version")
 
-    setIsLoading(false)
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erreur inconnue")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

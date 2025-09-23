@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const file = form.get("file") as File | null
     const processId = form.get("processId")?.toString() || ""
     const description = (form.get("description")?.toString() || "").slice(0, 2000)
+    const existingId = form.get("existingId")?.toString() || ""
 
     if (!file) {
       return NextResponse.json({ error: "Fichier requis" }, { status: 400 })
@@ -54,28 +55,49 @@ export async function POST(request: NextRequest) {
     await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
 
     // Persister en base avec Neon
-    console.log("Inserting document with data:", {
+    console.log("Upload with data:", {
       name: file.name,
       type: file.type || "application/octet-stream",
       size: file.size,
       processId: processId ? Number(processId) : null,
-      url: blob.url
+      url: blob.url,
+      existingId
     })
     
-    const result = await sql`
-      INSERT INTO documents (name, description, type, size, version, process_id, url, uploaded_by)
-      VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
-      RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
-    `
+    if (existingId) {
+      // Mise à jour d'un document existant (nouvelle version)
+      const current = await sql`
+        SELECT version FROM documents WHERE id = ${Number(existingId)}
+      `
+      const currentVersion = (current?.[0]?.version as string) || "1.0"
+      const nextVersion = (() => {
+        const n = Number.parseFloat(currentVersion)
+        if (Number.isFinite(n)) return (n + 0.1).toFixed(1)
+        return "1.1"
+      })()
 
-    console.log("/api/uploads inserted result:", result)
-    console.log("/api/uploads inserted first row:", result[0])
-    
-    return NextResponse.json({ 
-      url: blob.url, 
-      document: result[0],
-      success: true 
-    })
+      const updated = await sql`
+        UPDATE documents
+        SET url = ${blob.url},
+            type = ${file.type || "application/octet-stream"},
+            size = ${file.size},
+            version = ${nextVersion},
+            uploaded_at = CURRENT_TIMESTAMP
+        WHERE id = ${Number(existingId)}
+        RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
+      `
+
+      return NextResponse.json({ url: blob.url, document: updated[0], success: true, updated: true })
+    } else {
+      // Création d'un nouveau document
+      const result = await sql`
+        INSERT INTO documents (name, description, type, size, version, process_id, url, uploaded_by)
+        VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
+        RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
+      `
+
+      return NextResponse.json({ url: blob.url, document: result[0], success: true, created: true })
+    }
   } catch (error: any) {
     console.error("/api/uploads error:", error)
     return NextResponse.json({ error: "Upload failed", details: error?.message || String(error) }, { status: 500 })
