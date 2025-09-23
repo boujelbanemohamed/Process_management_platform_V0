@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Users, FolderOpen, Eye, Edit, Trash2, Search } from "lucide-react"
 import Link from "next/link"
-import { entities } from "@/lib/data"
 import { useAuth } from "@/lib/auth"
 
 const typeIcons = {
@@ -29,23 +28,102 @@ const typeColors = {
   project: "bg-purple-100 text-purple-800",
 }
 
+interface Entity {
+  id: string
+  name: string
+  type: string
+  description: string
+  parent_id?: string
+  created_at: string
+  updated_at: string
+}
+
 export function EntityList() {
   const { user } = useAuth()
+  const [entities, setEntities] = useState<Entity[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+
+  // Charger les entités depuis l'API
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        console.log("🔄 Chargement des entités...")
+        const response = await fetch("/api/entities")
+        if (response.ok) {
+          const data = await response.json()
+          console.log("📥 Entités chargées:", data)
+          setEntities(Array.isArray(data) ? data : [])
+        } else {
+          console.error("❌ Erreur chargement entités:", response.status)
+          setEntities([])
+        }
+      } catch (error) {
+        console.error("❌ Erreur chargement entités:", error)
+        setEntities([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadEntities()
+  }, [])
 
   const filteredEntities = entities.filter((entity) => {
     const matchesSearch =
       entity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entity.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (entity.description && entity.description.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesType = typeFilter === "all" || entity.type === typeFilter
     return matchesSearch && matchesType
   })
 
   const canEdit = user?.role === "admin" || user?.role === "contributor"
 
+  // Calculer les statistiques dynamiques
+  const stats = {
+    departments: entities.filter(e => e.type === 'department').length,
+    teams: entities.filter(e => e.type === 'team').length,
+    projects: entities.filter(e => e.type === 'project').length,
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Statistiques dynamiques */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Départements</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.departments}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Équipes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.teams}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Projets</CardTitle>
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.projects}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtres */}
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -69,56 +147,70 @@ export function EntityList() {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredEntities.map((entity) => {
-          const Icon = typeIcons[entity.type]
-          return (
-            <Card key={entity.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-5 w-5 text-muted-foreground" />
-                    <CardTitle className="text-lg">{entity.name}</CardTitle>
-                  </div>
-                  <Badge className={typeColors[entity.type]}>{typeLabels[entity.type]}</Badge>
-                </div>
-                <CardDescription className="line-clamp-2">{entity.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {entity.processes.length} processus associé{entity.processes.length > 1 ? "s" : ""}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/entities/${entity.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    {canEdit && (
-                      <>
+      {/* Liste des entités */}
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800 mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Chargement des entités...</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredEntities.map((entity) => {
+              const Icon = typeIcons[entity.type as keyof typeof typeIcons] || Building2
+              return (
+                <Card key={entity.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-5 w-5 text-muted-foreground" />
+                        <CardTitle className="text-lg">{entity.name}</CardTitle>
+                      </div>
+                      <Badge className={typeColors[entity.type as keyof typeof typeColors] || "bg-gray-100 text-gray-800"}>
+                        {typeLabels[entity.type as keyof typeof typeLabels] || entity.type}
+                      </Badge>
+                    </div>
+                    <CardDescription className="line-clamp-2">
+                      {entity.description || "Aucune description"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Créé le {new Date(entity.created_at).toLocaleDateString('fr-FR')}
+                      </div>
+                      <div className="flex gap-2">
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/entities/${entity.id}/edit`}>
-                            <Edit className="h-4 w-4" />
+                          <Link href={`/entities/${entity.id}`}>
+                            <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                        {canEdit && (
+                          <>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/entities/${entity.id}/edit`}>
+                                <Edit className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
 
-      {filteredEntities.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Aucune entité trouvée</p>
-        </div>
+          {filteredEntities.length === 0 && !loading && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Aucune entité trouvée</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
