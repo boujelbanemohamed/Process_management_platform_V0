@@ -782,7 +782,9 @@ export function UserManagement() {
       {/* Formulaire d'édition d'utilisateur */}
       {console.log("🔍 Rendering showEditForm:", showEditForm, "editingUser:", editingUser)}
       {showEditForm && editingUser && (
-        <Card className="border-slate-200 bg-slate-50">
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={closeAllDialogs}></div>
+          <Card className="border-slate-200 bg-slate-50 fixed top-4 left-4 right-4 z-50 max-w-2xl mx-auto shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-slate-800">Modifier l'utilisateur</CardTitle>
@@ -871,12 +873,15 @@ export function UserManagement() {
             </form>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Dialogue de changement de rôle */}
       {console.log("🔍 Rendering showRoleChangeDialog:", showRoleChangeDialog, "selectedUserForRole:", selectedUserForRole)}
       {showRoleChangeDialog && selectedUserForRole && (
-        <Card className="border-slate-200 bg-slate-50">
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={closeAllDialogs}></div>
+          <Card className="border-slate-200 bg-slate-50 fixed top-4 left-4 right-4 z-50 max-w-2xl mx-auto shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-slate-800">Changer le rôle</CardTitle>
@@ -914,12 +919,15 @@ export function UserManagement() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Dialogue de suppression */}
       {console.log("🔍 Rendering showDeleteDialog:", showDeleteDialog, "selectedUserForDelete:", selectedUserForDelete)}
       {showDeleteDialog && selectedUserForDelete && (
-        <Card className="border-red-200 bg-red-50">
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={closeAllDialogs}></div>
+          <Card className="border-red-200 bg-red-50 fixed top-4 left-4 right-4 z-50 max-w-2xl mx-auto shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-red-800">Supprimer l'utilisateur</CardTitle>
@@ -953,12 +961,15 @@ export function UserManagement() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Dialogue de changement de mot de passe */}
       {console.log("🔍 Rendering showPasswordDialog:", showPasswordDialog, "selectedUserForPassword:", selectedUserForPassword)}
       {showPasswordDialog && selectedUserForPassword && (
-        <Card className="border-orange-200 bg-orange-50">
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={closeAllDialogs}></div>
+          <Card className="border-orange-200 bg-orange-50 fixed top-4 left-4 right-4 z-50 max-w-2xl mx-auto shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-orange-800">Changer le mot de passe</CardTitle>
@@ -1016,6 +1027,7 @@ export function UserManagement() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   )
