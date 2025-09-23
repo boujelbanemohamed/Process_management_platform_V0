@@ -121,21 +121,6 @@ export async function PUT(request: NextRequest) {
     
     const sql = getSql()
     console.log("Updating document ID:", id, "with data:", { name, description, processId })
-    
-    // Récupérer la version actuelle pour l'incrémenter
-    const currentDoc = await sql`
-      SELECT version FROM documents WHERE id = ${Number(id)}
-    `
-    console.log("Current document version:", currentDoc)
-    
-    const currentVersion = currentDoc[0]?.version || "1.0"
-    const nextVersion = (() => {
-      const n = Number.parseFloat(currentVersion)
-      if (Number.isFinite(n)) return (n + 0.1).toFixed(1)
-      return "1.1"
-    })()
-    
-    console.log("Next version will be:", nextVersion)
 
     const result = await sql`
       UPDATE documents 
@@ -143,7 +128,6 @@ export async function PUT(request: NextRequest) {
           description = ${description || null},
           type = ${type || null}, 
           size = ${size || null}, 
-          version = ${nextVersion}, 
           process_id = ${processId ? Number(processId) : null}, 
           url = ${url || null},
           updated_at = CURRENT_TIMESTAMP
