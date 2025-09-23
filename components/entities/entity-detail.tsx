@@ -29,7 +29,7 @@ interface Process {
 }
 
 interface EntityDetailProps {
-  entity: Entity
+  entityId: string
 }
 
 const typeIcons = {
@@ -50,13 +50,39 @@ const typeColors = {
   project: "bg-purple-100 text-purple-800",
 }
 
-export function EntityDetail({ entity }: EntityDetailProps) {
+export function EntityDetail({ entityId }: EntityDetailProps) {
   const { user } = useAuth()
+  const [entity, setEntity] = useState<Entity | null>(null)
   const [processes, setProcesses] = useState<Process[]>([])
   const [loading, setLoading] = useState(true)
+  const [entityLoading, setEntityLoading] = useState(true)
   
-  const Icon = typeIcons[entity.type as keyof typeof typeIcons] || Building2
   const canEdit = user?.role === "admin" || user?.role === "contributor"
+
+  // Charger l'entité depuis l'API
+  useEffect(() => {
+    const loadEntity = async () => {
+      try {
+        console.log("🔄 Chargement de l'entité:", entityId)
+        const response = await fetch(`/api/entities?id=${entityId}`)
+        if (response.ok) {
+          const data = await response.json()
+          console.log("📥 Entité chargée:", data)
+          setEntity(data)
+        } else {
+          console.error("❌ Erreur chargement entité:", response.status)
+          setEntity(null)
+        }
+      } catch (error) {
+        console.error("❌ Erreur chargement entité:", error)
+        setEntity(null)
+      } finally {
+        setEntityLoading(false)
+      }
+    }
+
+    loadEntity()
+  }, [entityId])
 
   // Charger les processus depuis l'API
   useEffect(() => {
@@ -79,6 +105,39 @@ export function EntityDetail({ entity }: EntityDetailProps) {
 
     loadProcesses()
   }, [])
+
+  // Si l'entité n'est pas encore chargée
+  if (entityLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
+          <p className="text-slate-500 ml-3">Chargement de l'entité...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si l'entité n'existe pas
+  if (!entity) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/entities">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour
+            </Link>
+          </Button>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-slate-500">Entité non trouvée</p>
+        </div>
+      </div>
+    )
+  }
+
+  const Icon = typeIcons[entity.type as keyof typeof typeIcons] || Building2
 
   // Pour l'instant, on affiche tous les processus car on n'a pas de relation directe
   // Dans une vraie implémentation, on aurait une relation entity_id dans la table processes
