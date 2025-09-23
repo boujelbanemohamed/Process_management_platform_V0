@@ -228,9 +228,7 @@ export function DocumentList() {
                       <Badge variant="outline" className="text-xs">
                         {getProcessName(document)}
                       </Badge>
-                      {document.description && (
-                        <span className="text-xs text-slate-500 truncate">{document.description}</span>
-                      )}
+                      <span className="text-xs text-slate-500 truncate">{document.description || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

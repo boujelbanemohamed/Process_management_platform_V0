@@ -167,12 +167,10 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                   </p>
                 </div>
               </div>
-              {document.description && (
-                <div className="mt-4 text-left">
-                  <p className="text-sm font-medium text-slate-700 mb-1">Description</p>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{document.description}</p>
-                </div>
-              )}
+              <div className="mt-4 text-left">
+                <p className="text-sm font-medium text-slate-700 mb-1">Description</p>
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">{document.description || 'N/A'}</p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -189,11 +187,9 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
                 <Badge variant="outline" className="mt-1">
                   {document.process_name || "Processus inconnu"}
                 </Badge>
-                {document.description && (
-                  <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">
-                    {document.description}
-                  </p>
-                )}
+                <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">
+                  {document.description || 'N/A'}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Type de fichier</p>
