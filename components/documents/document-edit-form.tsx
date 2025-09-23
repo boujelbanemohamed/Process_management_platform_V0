@@ -47,9 +47,10 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
           version: data.version || "1.0",
           type: data.type || "unknown",
           url: data.url || "#",
+          description: data.description || "",
         }
         setDoc(normalized)
-        setFormData({ name: normalized.name, processId: normalized.processId, description: "" })
+        setFormData({ name: normalized.name, processId: normalized.processId, description: normalized.description })
 
         // Charger les processus pour la liste déroulante
         const resProc = await fetch(`/api/processes`)
