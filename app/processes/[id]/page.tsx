@@ -1,6 +1,8 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { ProcessDetail } from "@/components/processes/process-detail"
 
+export const dynamic = 'force-dynamic'
+
 interface ProcessPageProps {
   params: {
     id: string
