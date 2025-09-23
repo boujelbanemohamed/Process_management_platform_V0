@@ -102,6 +102,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         body: JSON.stringify({
           id: documentId,
           name: formData.name,
+          description: formData.description,
           processId: formData.processId ? Number(formData.processId) : null,
         }),
       })
