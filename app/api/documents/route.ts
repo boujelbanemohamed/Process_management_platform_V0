@@ -110,24 +110,32 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, name, description, type, size, version, processId, url } = await request.json()
+    const body = await request.json()
+    console.log("PUT /api/documents body:", body)
+    
+    const { id, name, description, type, size, version, processId, url } = body
     
     if (!id) {
       return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
     }
     
     const sql = getSql()
+    console.log("Updating document ID:", id, "with data:", { name, description, processId })
     
     // Récupérer la version actuelle pour l'incrémenter
     const currentDoc = await sql`
       SELECT version FROM documents WHERE id = ${Number(id)}
     `
+    console.log("Current document version:", currentDoc)
+    
     const currentVersion = currentDoc[0]?.version || "1.0"
     const nextVersion = (() => {
       const n = Number.parseFloat(currentVersion)
       if (Number.isFinite(n)) return (n + 0.1).toFixed(1)
       return "1.1"
     })()
+    
+    console.log("Next version will be:", nextVersion)
 
     const result = await sql`
       UPDATE documents 
@@ -143,6 +151,8 @@ export async function PUT(request: NextRequest) {
       RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
     
+    console.log("Update result:", result)
+    
     if (result.length === 0) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
@@ -150,10 +160,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result[0])
   } catch (error: any) {
     console.error("Error updating document:", error)
+    console.error("Error stack:", error.stack)
     return NextResponse.json({ 
       error: "Failed to update document", 
       details: error.message,
-      code: error.code 
+      code: error.code,
+      stack: error.stack
     }, { status: 500 })
   }
 }
