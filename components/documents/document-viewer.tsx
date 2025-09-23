@@ -159,25 +159,49 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
             </CardHeader>
             <CardContent>
               <div className="bg-slate-100 rounded-lg p-8 text-center min-h-96 flex items-center justify-center">
-                <div>
-                  <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600">Aperçu du document</p>
-                  <p className="text-sm text-slate-500 mt-2">
-                    {document.type?.toUpperCase() || 'UNKNOWN'} • {formatFileSize(document.size || 0)}
-                  </p>
-                  {document.url && document.url !== '#' && (
-                    <div className="mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(document.url, '_blank')}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ouvrir le document
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {document.url && document.url !== '#' ? (
+                  <div className="w-full">
+                    {document.type?.toLowerCase().includes('pdf') ? (
+                      <iframe
+                        src={document.url}
+                        className="w-full h-96 border-0 rounded"
+                        title="Aperçu PDF"
+                      />
+                    ) : document.type?.toLowerCase().includes('image') ? (
+                      <img
+                        src={document.url}
+                        alt="Aperçu"
+                        className="max-w-full max-h-96 mx-auto rounded"
+                      />
+                    ) : (
+                      <div>
+                        <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-600">Aperçu non disponible</p>
+                        <p className="text-sm text-slate-500 mt-2">
+                          {document.type?.toUpperCase() || 'UNKNOWN'} • {formatFileSize(document.size || 0)}
+                        </p>
+                        <div className="mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.open(document.url, '_blank')}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ouvrir le document
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <FileText className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600">Aucun fichier disponible</p>
+                    <p className="text-sm text-slate-500 mt-2">
+                      {document.type?.toUpperCase() || 'UNKNOWN'} • {formatFileSize(document.size || 0)}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="mt-4 text-left">
                 <p className="text-sm font-medium text-slate-700 mb-1">Description</p>

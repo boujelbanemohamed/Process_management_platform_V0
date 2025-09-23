@@ -118,15 +118,27 @@ export async function PUT(request: NextRequest) {
     
     const sql = getSql()
     
+    // Récupérer la version actuelle pour l'incrémenter
+    const currentDoc = await sql`
+      SELECT version FROM documents WHERE id = ${id}
+    `
+    const currentVersion = currentDoc[0]?.version || "1.0"
+    const nextVersion = (() => {
+      const n = Number.parseFloat(currentVersion)
+      if (Number.isFinite(n)) return (n + 0.1).toFixed(1)
+      return "1.1"
+    })()
+
     const result = await sql`
       UPDATE documents 
       SET name = ${name || ''}, 
           description = ${description || null},
           type = ${type || null}, 
           size = ${size || null}, 
-          version = ${version || null}, 
+          version = ${nextVersion}, 
           process_id = ${processId || null}, 
-          url = ${url || null}
+          url = ${url || null},
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
     `
