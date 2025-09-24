@@ -85,8 +85,11 @@ export function CategoryManagement() {
     } else {
       const created = await CategoryService.createCategory(formData)
       if (created) {
+        // Mise à jour optimiste immédiate
+        setCategories((prev) => [created, ...prev])
+        // Puis synchronisation avec la source (au cas où)
         const all = await CategoryService.getCategories()
-        setCategories(all)
+        setCategories(Array.isArray(all) ? all : [])
       }
     }
 

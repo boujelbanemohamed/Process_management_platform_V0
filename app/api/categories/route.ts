@@ -27,18 +27,18 @@ export async function GET(request: Request) {
     const id = searchParams.get("id")
 
     if (id) {
-      const result = await DatabaseService.query(
-        `SELECT * FROM categories WHERE id = $1`,
-        [Number(id)],
-      )
-      if (!result.rows.length) {
+    const result = await DatabaseService.query(
+      `SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories WHERE id = $1`,
+      [Number(id)],
+    )
+    if (!result.rows.length) {
         return NextResponse.json({ error: "Category not found" }, { status: 404 })
       }
-      return NextResponse.json(result.rows[0])
+    return NextResponse.json(result.rows[0])
     }
 
     const type = searchParams.get("type")
-    const query = type ? `SELECT * FROM categories WHERE type = $1 ORDER BY name` : `SELECT * FROM categories ORDER BY name`
+    const query = type ? `SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories WHERE type = $1 ORDER BY name` : `SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories ORDER BY name`
     const params = type ? [type] : []
     const result = await DatabaseService.query(query, params)
     return NextResponse.json(result.rows)
