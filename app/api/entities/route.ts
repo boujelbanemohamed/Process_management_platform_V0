@@ -108,9 +108,21 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, name, type, description, parentId } = await request.json()
+    const { searchParams } = new URL(request.url)
+    const idFromUrl = searchParams.get('id')
+    const body = await request.json()
+    const { id, name, type, description, parentId } = body
     
-    if (!id) {
+    console.log('PUT request - URL:', request.url)
+    console.log('PUT request - idFromUrl:', idFromUrl)
+    console.log('PUT request - body:', body)
+    
+    // Utiliser l'ID de l'URL en priorité, sinon celui du body
+    const entityId = idFromUrl || id
+    
+    console.log('PUT request - entityId:', entityId)
+    
+    if (!entityId) {
       return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
     }
     
@@ -124,7 +136,7 @@ export async function PUT(request: NextRequest) {
           description = ${description || null},
           parent_id = ${parentId ? Number(parentId) : null},
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${Number(id)}
+      WHERE id = ${Number(entityId)}
       RETURNING id, name, type, description, parent_id, created_at, updated_at
     `
     
