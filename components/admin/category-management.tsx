@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CategoryService, type Category } from "@/lib/categories"
-import { useAuth } from "@/lib/auth"
+import { useAuth, AuthService } from "@/lib/auth"
 import { Search, Plus, Edit, Trash2, Tag, FileText, FolderOpen, Users } from "lucide-react"
 
 export function CategoryManagement() {
