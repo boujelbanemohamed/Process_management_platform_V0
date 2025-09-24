@@ -63,12 +63,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid payload", details: "'name' et 'type' requis. type ∈ {process, document, entity}" }, { status: 400 })
     }
 
-    const result = await DatabaseService.query(
-      `INSERT INTO categories (name, description, type, color, is_system)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [rawName, rawDesc, rawType, rawColor, isSystem],
-    )
+    const escape = (s: string) => s.replace(/'/g, "''")
+    const insertSql = `
+      INSERT INTO categories (name, description, type, color, is_system)
+      VALUES ('${escape(rawName)}', '${escape(rawDesc)}', '${escape(rawType)}', '${escape(rawColor)}', ${isSystem ? 'TRUE' : 'FALSE'})
+      RETURNING *
+    `
+    const result = await DatabaseService.query(insertSql)
     console.log("[POST /api/categories] inserted:", result.rows?.[0])
 
     return NextResponse.json(result.rows[0], { status: 201 })
