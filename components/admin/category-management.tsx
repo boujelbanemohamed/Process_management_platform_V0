@@ -25,7 +25,8 @@ export function CategoryManagement() {
   })
 
   const { user } = useAuth()
-  const canManageCategories = !!user && (user.role === "admin" || user.role === "contributor")
+  // Autoriser immédiatement via le service (session locale) + fallback au rôle du contexte
+  const canManageCategories = AuthService.hasPermission("write") || (!!user && (user.role === "admin" || user.role === "contributor"))
 
   // Charger dynamiquement les catégories
   useEffect(() => {
