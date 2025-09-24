@@ -65,9 +65,9 @@ export async function POST(request: Request) {
 
     const escape = (s: string) => s.replace(/'/g, "''")
     const insertSql = `
-      INSERT INTO categories (name, description, type, color, is_system)
+      INSERT INTO categories (name, description, "type", color, is_system)
       VALUES ('${escape(rawName)}', '${escape(rawDesc)}', '${escape(rawType)}', '${escape(rawColor)}', ${isSystem ? 'TRUE' : 'FALSE'})
-      RETURNING *
+      RETURNING id, name, description, "type", color, is_system, created_at, updated_at
     `
     const result = await DatabaseService.query(insertSql)
     console.log("[POST /api/categories] inserted:", result.rows?.[0])
