@@ -31,7 +31,7 @@ export function CategoryManagement() {
   useEffect(() => {
     const load = async () => {
       const all = await CategoryService.getCategories()
-      setCategories(all)
+      setCategories(Array.isArray(all) ? all : [])
     }
     load()
   }, [])

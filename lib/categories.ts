@@ -147,11 +147,13 @@ export const mockStatuses: Status[] = [
 
 export class CategoryService {
   static async getCategories(type?: "process" | "document" | "entity"): Promise<Category[]> {
-    const url = type ? `/api/categories?type=${encodeURIComponent(type)}` : `/api/categories`
-    const res = await fetch(url)
-    if (!res.ok) return []
-    const rows = await res.json()
-    return rows.map((r: any) => ({
+    try {
+      const url = type ? `/api/categories?type=${encodeURIComponent(type)}` : `/api/categories`
+      const res = await fetch(url)
+      if (!res.ok) return []
+      const data = await res.json()
+      const rows = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : [])
+      return rows.map((r: any) => ({
       id: String(r.id),
       name: r.name,
       description: r.description || "",
@@ -160,7 +162,11 @@ export class CategoryService {
       isSystem: Boolean(r.is_system),
       createdAt: r.created_at ? new Date(r.created_at) : new Date(),
       updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
-    })) as Category[]
+      })) as Category[]
+    } catch (e) {
+      console.error("Erreur chargement catégories:", e)
+      return []
+    }
   }
 
   static async getCategoryById(id: string): Promise<Category | undefined> {
