@@ -146,47 +146,82 @@ export const mockStatuses: Status[] = [
 ]
 
 export class CategoryService {
-  static getCategories(type?: "process" | "document" | "entity"): Category[] {
-    return type ? mockCategories.filter((cat) => cat.type === type) : mockCategories
+  static async getCategories(type?: "process" | "document" | "entity"): Promise<Category[]> {
+    const url = type ? `/api/categories?type=${encodeURIComponent(type)}` : `/api/categories`
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const rows = await res.json()
+    return rows.map((r: any) => ({
+      id: String(r.id),
+      name: r.name,
+      description: r.description || "",
+      type: r.type,
+      color: r.color || "#3B82F6",
+      isSystem: Boolean(r.is_system),
+      createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+      updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+    })) as Category[]
   }
 
-  static getCategoryById(id: string): Category | undefined {
-    return mockCategories.find((cat) => cat.id === id)
-  }
-
-  static createCategory(category: Omit<Category, "id" | "createdAt" | "updatedAt">): Category {
-    const newCategory: Category = {
-      ...category,
-      id: `cat-${Date.now()}`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+  static async getCategoryById(id: string): Promise<Category | undefined> {
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`)
+    if (!res.ok) return undefined
+    const r = await res.json()
+    return {
+      id: String(r.id),
+      name: r.name,
+      description: r.description || "",
+      type: r.type,
+      color: r.color || "#3B82F6",
+      isSystem: Boolean(r.is_system),
+      createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+      updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
     }
-    mockCategories.push(newCategory)
-    return newCategory
   }
 
-  static updateCategory(id: string, updates: Partial<Category>): Category | null {
-    const index = mockCategories.findIndex((cat) => cat.id === id)
-    if (index === -1) return null
-
-    mockCategories[index] = {
-      ...mockCategories[index],
-      ...updates,
-      updatedAt: new Date(),
+  static async createCategory(category: { name: string; description: string; type: "process" | "document" | "entity"; color?: string; isSystem?: boolean }): Promise<Category | null> {
+    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(category) })
+    if (!res.ok) return null
+    const r = await res.json()
+    return {
+      id: String(r.id),
+      name: r.name,
+      description: r.description || "",
+      type: r.type,
+      color: r.color || "#3B82F6",
+      isSystem: Boolean(r.is_system),
+      createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+      updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
     }
-    return mockCategories[index]
   }
 
-  static deleteCategory(id: string): boolean {
-    const category = mockCategories.find((cat) => cat.id === id)
-    if (!category || category.isSystem) return false
-
-    const index = mockCategories.findIndex((cat) => cat.id === id)
-    if (index > -1) {
-      mockCategories.splice(index, 1)
-      return true
+  static async updateCategory(id: string, updates: Partial<Category>): Promise<Category | null> {
+    const payload: any = {
+      id,
+      name: updates.name,
+      description: updates.description,
+      type: updates.type,
+      color: updates.color,
+      isSystem: updates.isSystem,
     }
-    return false
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    if (!res.ok) return null
+    const r = await res.json()
+    return {
+      id: String(r.id),
+      name: r.name,
+      description: r.description || "",
+      type: r.type,
+      color: r.color || "#3B82F6",
+      isSystem: Boolean(r.is_system),
+      createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+      updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+    }
+  }
+
+  static async deleteCategory(id: string): Promise<boolean> {
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    return res.ok
   }
 }
 

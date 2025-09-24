@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth"
 import { Search, Plus, Edit, Trash2, Tag, FileText, FolderOpen, Users } from "lucide-react"
 
 export function CategoryManagement() {
-  const [categories, setCategories] = useState<Category[]>(CategoryService.getCategories())
+  const [categories, setCategories] = useState<Category[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<"all" | "process" | "document" | "entity">("all")
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -26,6 +26,15 @@ export function CategoryManagement() {
 
   const { user } = useAuth()
   const canManageCategories = user?.role === "admin"
+
+  // Charger dynamiquement les catégories
+  useEffect(() => {
+    const load = async () => {
+      const all = await CategoryService.getCategories()
+      setCategories(all)
+    }
+    load()
+  }, [])
 
   const filteredCategories = categories.filter((category) => {
     const matchesSearch =
@@ -61,19 +70,23 @@ export function CategoryManagement() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canManageCategories) return
 
     if (editingCategory) {
-      const updated = CategoryService.updateCategory(editingCategory.id, formData)
+      const updated = await CategoryService.updateCategory(editingCategory.id, formData)
       if (updated) {
-        setCategories(CategoryService.getCategories())
+        const all = await CategoryService.getCategories()
+        setCategories(all)
         setEditingCategory(null)
       }
     } else {
-      const newCategory = CategoryService.createCategory(formData)
-      setCategories(CategoryService.getCategories())
+      const created = await CategoryService.createCategory(formData)
+      if (created) {
+        const all = await CategoryService.getCategories()
+        setCategories(all)
+      }
     }
 
     setFormData({ name: "", description: "", type: "process", color: "#3B82F6" })
@@ -91,10 +104,12 @@ export function CategoryManagement() {
     setShowCreateForm(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!canManageCategories) return
-    if (CategoryService.deleteCategory(id)) {
-      setCategories(CategoryService.getCategories())
+    const ok = await CategoryService.deleteCategory(id)
+    if (ok) {
+      const all = await CategoryService.getCategories()
+      setCategories(all)
     }
   }
 
