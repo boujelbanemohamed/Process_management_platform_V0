@@ -19,6 +19,12 @@ async function ensureEntitiesTable(sql: any) {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `
+  
+  // Ajouter la colonne parent_id si elle n'existe pas
+  await sql`
+    ALTER TABLE entities
+    ADD COLUMN IF NOT EXISTS parent_id BIGINT
+  `
 }
 
 export async function GET(request: NextRequest) {
