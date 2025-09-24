@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { neon } from "@neondatabase/serverless"
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 import { DatabaseService } from "@/lib/database"
@@ -63,16 +64,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid payload", details: "'name' et 'type' requis. type ∈ {process, document, entity}" }, { status: 400 })
     }
 
-    const escape = (s: string) => s.replace(/'/g, "''")
-    const insertSql = `
+    const url = process.env.DATABASE_URL
+    if (!url) {
+      return NextResponse.json({ error: "Database URL missing" }, { status: 500 })
+    }
+    const sql = neon(url)
+    const inserted = await sql`
       INSERT INTO categories (name, description, "type", color, is_system)
-      VALUES ('${escape(rawName)}', '${escape(rawDesc)}', '${escape(rawType)}', '${escape(rawColor)}', ${isSystem ? 'TRUE' : 'FALSE'})
+      VALUES (${rawName}, ${rawDesc}, ${rawType}, ${rawColor}, ${isSystem})
       RETURNING id, name, description, "type", color, is_system, created_at, updated_at
     `
-    const result = await DatabaseService.query(insertSql)
-    console.log("[POST /api/categories] inserted:", result.rows?.[0])
+    console.log("[POST /api/categories] inserted:", inserted?.[0])
 
-    return NextResponse.json(result.rows[0], { status: 201 })
+    return NextResponse.json(inserted?.[0], { status: 201 })
   } catch (error: any) {
     console.error("POST /api/categories error:", error?.message || error, error?.stack)
     return NextResponse.json({ error: "Failed to create category", details: error?.message || String(error) }, { status: 500 })
