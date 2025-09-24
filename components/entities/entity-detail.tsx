@@ -16,6 +16,16 @@ interface Entity {
   parent_id?: string
   created_at: string
   updated_at: string
+  user_count?: number
+  users?: User[]
+}
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  avatar?: string
 }
 
 interface Process {
@@ -179,6 +189,45 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground leading-relaxed">{entity.description || "N/A"}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Utilisateurs affiliés ({entity.user_count || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {entity.users && entity.users.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {entity.users.map((user) => (
+                    <div key={user.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                      <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-slate-600">
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-800">{user.name}</p>
+                        <p className="text-sm text-slate-500">{user.email}</p>
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {user.role}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Aucun utilisateur affilié à cette entité</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

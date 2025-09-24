@@ -36,6 +36,7 @@ interface Entity {
   parent_id?: string
   created_at: string
   updated_at: string
+  user_count?: number
 }
 
 export function EntityList() {
@@ -175,28 +176,36 @@ export function EntityList() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Créé le {new Date(entity.created_at).toLocaleDateString('fr-FR')}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-slate-500" />
+                        <span className="text-sm text-slate-600">
+                          {entity.user_count || 0} utilisateur{(entity.user_count || 0) > 1 ? 's' : ''}
+                        </span>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/entities/${entity.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        {canEdit && (
-                          <>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/entities/${entity.id}/edit`}>
-                                <Edit className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Créé le {new Date(entity.created_at).toLocaleDateString('fr-FR')}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/entities/${entity.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          {canEdit && (
+                            <>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/entities/${entity.id}/edit`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

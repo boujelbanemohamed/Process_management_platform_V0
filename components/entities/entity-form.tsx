@@ -1,185 +1,355 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save } from "lucide-react"
-import Link from "next/link"
-import type { Entity } from "@/types"
-import { processes } from "@/lib/data"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Save, X, Users, Plus, Trash2 } from "lucide-react"
 
 interface EntityFormProps {
-  entity?: Entity
+  entityId?: string
+  mode: "create" | "edit"
 }
 
-export function EntityForm({ entity }: EntityFormProps) {
+interface Entity {
+  id: string
+  name: string
+  type: string
+  description: string
+  parent_id?: string
+  created_at: string
+  updated_at: string
+  user_count?: number
+  users?: User[]
+}
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  avatar?: string
+}
+
+export function EntityForm({ entityId, mode }: EntityFormProps) {
   const router = useRouter()
-  const isEditing = !!entity
+  const [entity, setEntity] = useState<Entity | null>(null)
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: entity?.name || "",
-    type: entity?.type || "department",
-    description: entity?.description || "",
-    processes: entity?.processes || [],
+    name: "",
+    description: "",
+    type: "department",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
 
-    // Here you would typically save to your backend
-    console.log("[v0] Saving entity:", formData)
-
-    // Simulate save and redirect
-    setTimeout(() => {
-      if (isEditing) {
-        router.push(`/entities/${entity.id}`)
-      } else {
-        router.push("/entities")
+  // Charger les utilisateurs
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await fetch("/api/users")
+        if (response.ok) {
+          const data = await response.json()
+          setAllUsers(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error("Erreur chargement utilisateurs:", error)
       }
-    }, 1000)
+    }
+    loadUsers()
+  }, [])
+
+  // Charger l'entité si en mode édition
+  useEffect(() => {
+    if (entityId && mode === "edit") {
+      const loadEntity = async () => {
+        try {
+          setLoading(true)
+          const response = await fetch(`/api/entities?id=${entityId}`)
+          if (response.ok) {
+            const data = await response.json()
+            setEntity(data)
+            setFormData({
+              name: data.name || "",
+              description: data.description || "",
+              type: data.type || "department",
+            })
+            setSelectedUsers(data.users ? data.users.map((u: User) => String(u.id)) : [])
+          }
+        } catch (error) {
+          console.error("Erreur chargement entité:", error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadEntity()
+    }
+  }, [entityId, mode])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const url = mode === "create" ? "/api/entities" : `/api/entities?id=${entityId}`
+      const method = mode === "create" ? "POST" : "PUT"
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la sauvegarde de l\'entité')
+      }
+
+      const savedEntity = await response.json()
+      
+      // Mettre à jour les utilisateurs affiliés
+      if (selectedUsers.length > 0 || (entity && entity.users && entity.users.length > 0)) {
+        await updateEntityUsers(savedEntity.id, selectedUsers)
+      }
+
+      router.push("/entities")
+    } catch (error) {
+      console.error('Error saving entity:', error)
+      alert('Erreur lors de la sauvegarde de l\'entité')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleProcessToggle = (processId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      processes: prev.processes.includes(processId)
-        ? prev.processes.filter((id) => id !== processId)
-        : [...prev.processes, processId],
-    }))
+  const updateEntityUsers = async (entityId: string, userIds: string[]) => {
+    try {
+      // Mettre à jour chaque utilisateur sélectionné
+      for (const userId of userIds) {
+        await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update-user",
+            userId: userId,
+            entityId: entityId,
+          }),
+        })
+      }
+
+      // Retirer l'entité des utilisateurs non sélectionnés
+      const currentUserIds = entity?.users ? entity.users.map(u => String(u.id)) : []
+      const usersToRemove = currentUserIds.filter(id => !userIds.includes(id))
+      
+      for (const userId of usersToRemove) {
+        await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update-user",
+            userId: userId,
+            entityId: null,
+          }),
+        })
+      }
+    } catch (error) {
+      console.error("Erreur mise à jour utilisateurs:", error)
+    }
+  }
+
+  const toggleUser = (userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    )
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin": return "Administrateur"
+      case "contributor": return "Contributeur"
+      case "reader": return "Lecteur"
+      default: return role
+    }
+  }
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "admin": return "bg-red-100 text-red-800"
+      case "contributor": return "bg-blue-100 text-blue-800"
+      case "reader": return "bg-green-100 text-green-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={isEditing ? `/entities/${entity.id}` : "/entities"}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Link>
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">{isEditing ? "Modifier l'entité" : "Nouvelle entité"}</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">
+            {mode === "create" ? "Créer une entité" : "Modifier l'entité"}
+          </h1>
+          <p className="text-slate-600 mt-1">
+            {mode === "create" 
+              ? "Créez une nouvelle entité organisationnelle" 
+              : "Modifiez les informations de l'entité"
+            }
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Informations générales</CardTitle>
-                <CardDescription>Définissez les informations de base de l'entité</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nom de l'entité</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Département Marketing"
-                    required
-                  />
-                </div>
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-800">Informations générales</CardTitle>
+            <CardDescription>
+              Définissez les informations de base de l'entité
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom *</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Ex: Département IT"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Type</Label>
+                <select
+                  id="type"
+                  value={formData.type}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  <option value="department">Département</option>
+                  <option value="team">Équipe</option>
+                  <option value="project">Projet</option>
+                </select>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="type">Type d'entité</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value as any }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="department">Département</SelectItem>
-                      <SelectItem value="team">Équipe</SelectItem>
-                      <SelectItem value="project">Projet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Décrivez le rôle et les responsabilités de cette entité..."
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                    placeholder="Décrivez le rôle et les responsabilités de cette entité..."
-                    rows={4}
-                    required
-                  />
+        {/* Gestion des utilisateurs */}
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-800 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Utilisateurs affiliés
+            </CardTitle>
+            <CardDescription>
+              Sélectionnez les utilisateurs qui appartiennent à cette entité
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Utilisateurs sélectionnés */}
+            {selectedUsers.length > 0 && (
+              <div className="space-y-2">
+                <Label>Utilisateurs sélectionnés ({selectedUsers.length})</Label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUsers.map((userId) => {
+                    const user = allUsers.find(u => String(u.id) === userId)
+                    return user ? (
+                      <Badge key={userId} variant="secondary" className="flex items-center gap-1">
+                        {user.name}
+                        <button
+                          type="button"
+                          onClick={() => toggleUser(userId)}
+                          className="ml-1 hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null
+                  })}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Processus associés</CardTitle>
-                <CardDescription>Sélectionnez les processus liés à cette entité</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {processes.map((process) => (
-                    <div key={process.id} className="flex items-center space-x-2">
+            {/* Liste des utilisateurs disponibles */}
+            <div className="space-y-2">
+              <Label>Utilisateurs disponibles</Label>
+              <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-md p-3 space-y-2">
+                {allUsers.length > 0 ? (
+                  allUsers.map((user) => (
+                    <label key={user.id} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-slate-50 rounded">
                       <input
                         type="checkbox"
-                        id={`process-${process.id}`}
-                        checked={formData.processes.includes(process.id)}
-                        onChange={() => handleProcessToggle(process.id)}
-                        className="rounded border-gray-300"
+                        checked={selectedUsers.includes(String(user.id))}
+                        onChange={() => toggleUser(String(user.id))}
+                        className="rounded border-slate-300"
                       />
-                      <Label htmlFor={`process-${process.id}`} className="flex-1">
-                        <div>
-                          <p className="font-medium">{process.name}</p>
-                          <p className="text-sm text-muted-foreground">{process.description}</p>
-                        </div>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-slate-600">
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-800">{user.name}</p>
+                        <p className="text-sm text-slate-500">{user.email}</p>
+                      </div>
+                      <Badge className={getRoleColor(user.role)}>
+                        {getRoleLabel(user.role)}
+                      </Badge>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">Aucun utilisateur disponible</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button type="submit" className="w-full">
-                  <Save className="mr-2 h-4 w-4" />
-                  {isEditing ? "Mettre à jour" : "Créer l'entité"}
-                </Button>
-                <Button type="button" variant="outline" className="w-full bg-transparent" asChild>
-                  <Link href={isEditing ? `/entities/${entity.id}` : "/entities"}>Annuler</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Aide</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  <strong>Département :</strong> Unité organisationnelle principale
-                </p>
-                <p>
-                  <strong>Équipe :</strong> Groupe de travail spécialisé
-                </p>
-                <p>
-                  <strong>Projet :</strong> Initiative temporaire avec objectifs définis
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={isSubmitting} className="bg-slate-800 hover:bg-slate-700">
+            <Save className="h-4 w-4 mr-2" />
+            {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+          </Button>
         </div>
       </form>
     </div>

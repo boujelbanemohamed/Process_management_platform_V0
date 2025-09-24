@@ -30,20 +30,49 @@ export async function GET(request: NextRequest) {
     await ensureEntitiesTable(sql)
     
     if (id) {
-      // Récupérer une entité spécifique
+      // Récupérer une entité spécifique avec les utilisateurs affiliés
       const entity = await sql`
-        SELECT * FROM entities WHERE id = ${Number(id)}
+        SELECT e.*, 
+               COALESCE(user_count.user_count, 0) as user_count
+        FROM entities e
+        LEFT JOIN (
+          SELECT entity_id, COUNT(*) as user_count
+          FROM users
+          WHERE entity_id IS NOT NULL
+          GROUP BY entity_id
+        ) user_count ON e.id = user_count.entity_id
+        WHERE e.id = ${Number(id)}
       `
       
       if (entity.length === 0) {
         return NextResponse.json({ error: "Entity not found" }, { status: 404 })
       }
       
-      return NextResponse.json(entity[0])
+      const entityData = entity[0]
+      
+      // Récupérer les utilisateurs affiliés
+      const users = await sql`
+        SELECT id, name, email, role, avatar
+        FROM users
+        WHERE entity_id = ${Number(id)}
+        ORDER BY name
+      `
+      entityData.users = users
+      
+      return NextResponse.json(entityData)
     } else {
-      // Récupérer toutes les entités
+      // Récupérer toutes les entités avec le nombre d'utilisateurs
       const entities = await sql`
-        SELECT * FROM entities ORDER BY created_at DESC
+        SELECT e.*, 
+               COALESCE(user_count.user_count, 0) as user_count
+        FROM entities e
+        LEFT JOIN (
+          SELECT entity_id, COUNT(*) as user_count
+          FROM users
+          WHERE entity_id IS NOT NULL
+          GROUP BY entity_id
+        ) user_count ON e.id = user_count.entity_id
+        ORDER BY e.created_at DESC
       `
       return NextResponse.json(entities)
     }
