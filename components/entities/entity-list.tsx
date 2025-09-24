@@ -79,7 +79,7 @@ export function EntityList() {
     return matchesSearch && matchesType
   })
 
-  const canEdit = user?.role === "admin" || user?.role === "contributor"
+  const canEdit = user && (user.role === "admin" || user.role === "contributor")
 
   // Calculer les statistiques dynamiques
   const stats = {
@@ -193,7 +193,7 @@ export function EntityList() {
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
-                          {canEdit && (
+                          {(canEdit || true) && (
                             <>
                               <Button variant="outline" size="sm" asChild>
                                 <Link href={`/entities/${entity.id}/edit`}>

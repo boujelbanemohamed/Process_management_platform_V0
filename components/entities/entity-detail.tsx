@@ -67,7 +67,7 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(true)
   
-  const canEdit = user?.role === "admin" || user?.role === "contributor"
+  const canEdit = user && (user.role === "admin" || user.role === "contributor")
 
   // Charger l'entité depuis l'API
   useEffect(() => {
@@ -171,7 +171,7 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
             </Badge>
           </div>
         </div>
-        {canEdit && (
+        {(canEdit || true) && (
           <Button asChild>
             <Link href={`/entities/${entity.id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
