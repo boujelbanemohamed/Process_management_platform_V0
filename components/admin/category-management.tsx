@@ -87,9 +87,13 @@ export function CategoryManagement() {
       if (created) {
         // Mise à jour optimiste immédiate
         setCategories((prev) => [created, ...prev])
-        // Puis synchronisation avec la source (au cas où)
-        const all = await CategoryService.getCategories()
-        setCategories(Array.isArray(all) ? all : [])
+        // Fermer le formulaire et reset
+        resetForm()
+        // Refetch décalé pour éviter une éventuelle latence de propagation
+        setTimeout(async () => {
+          const all = await CategoryService.getCategories()
+          setCategories(Array.isArray(all) ? all : [])
+        }, 1200)
       }
     }
 
