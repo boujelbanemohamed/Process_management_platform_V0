@@ -129,16 +129,26 @@ export async function PUT(request: NextRequest) {
     const sql = getSql()
     await ensureEntitiesTable(sql)
     
+    console.log('PUT request - About to update entity:', {
+      entityId: Number(entityId),
+      name: name || '',
+      type: type || 'department',
+      description: description || null,
+      parentId: parentId ? Number(parentId) : null
+    })
+    
     const result = await sql`
       UPDATE entities 
       SET name = ${name || ''}, 
-          type = ${type || ''}, 
+          type = ${type || 'department'}, 
           description = ${description || null},
           parent_id = ${parentId ? Number(parentId) : null},
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${Number(entityId)}
       RETURNING id, name, type, description, parent_id, created_at, updated_at
     `
+    
+    console.log('PUT request - Update result:', result)
     
     if (result.length === 0) {
       return NextResponse.json({ error: "Entity not found" }, { status: 404 })
@@ -147,7 +157,16 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result[0])
   } catch (error) {
     console.error("Error updating entity:", error)
-    return NextResponse.json({ error: "Failed to update entity" }, { status: 500 })
+    console.error("Error details:", {
+      message: error?.message,
+      code: error?.code,
+      detail: error?.detail,
+      stack: error?.stack
+    })
+    return NextResponse.json({ 
+      error: "Failed to update entity", 
+      details: error?.message || String(error) 
+    }, { status: 500 })
   }
 }
 

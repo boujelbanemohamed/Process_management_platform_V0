@@ -101,6 +101,13 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
       const url = mode === "create" ? "/api/entities" : `/api/entities?id=${entityId}`
       const method = mode === "create" ? "POST" : "PUT"
 
+      console.log('Form submission:', {
+        url,
+        method,
+        formData,
+        entityId
+      })
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -110,7 +117,9 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
       })
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la sauvegarde de l\'entité')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error:', errorData)
+        throw new Error(errorData.details || errorData.error || 'Erreur lors de la sauvegarde de l\'entité')
       }
 
       const savedEntity = await response.json()
