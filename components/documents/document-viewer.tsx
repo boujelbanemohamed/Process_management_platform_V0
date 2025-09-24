@@ -119,7 +119,10 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
         prompt("Copiez le lien:", shareUrl)
       }
     } catch (e) {
-      console.error("Share failed", e)
+      // Ne pas logger l'erreur si l'utilisateur a simplement annulé le partage
+      if (e instanceof Error && e.name !== 'AbortError') {
+        console.error("Share failed", e)
+      }
     }
   }
 
