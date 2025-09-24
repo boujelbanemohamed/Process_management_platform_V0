@@ -9,6 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AuthService } from "@/lib/auth"
 import { ArrowLeft, Edit, Archive, FileText, Users, Calendar, Tag, Eye, Download, Upload, Plus } from "lucide-react"
 
+// Fonction pour valider les URLs
+const isValidUrl = (url: string): boolean => {
+  try {
+    const urlObj = new URL(url)
+    // Accepter seulement les URLs HTTP/HTTPS ou Vercel Blob
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:' || url.includes('vercel-storage.com')
+  } catch {
+    return false
+  }
+}
+
 interface ProcessDetailProps {
   processId: string
 }
@@ -173,8 +184,8 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
   }
 
   const handleDownload = (document: Document) => {
-    if (document.url && document.url !== '#') {
-      // Essayer d'abord le téléchargement direct
+    if (document.url && document.url !== '#' && isValidUrl(document.url)) {
+      // Essayer d'abord le téléchargement direct pour les URLs valides
       const link = document.createElement('a')
       link.href = document.url
       link.download = document.name
@@ -182,7 +193,7 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
       link.click()
       document.body.removeChild(link)
     } else {
-      // Fallback vers l'API de téléchargement
+      // Fallback vers l'API de téléchargement pour les URLs invalides ou manquantes
       window.open(`/api/documents/download?id=${document.id}`, '_blank')
     }
   }
@@ -383,7 +394,7 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
                   <CardContent>
                     {/* Aperçu du document */}
                     <div className="bg-slate-50 rounded-lg p-4 mb-4 min-h-32 flex items-center justify-center">
-                      {document.url && document.url !== '#' ? (
+                      {document.url && document.url !== '#' && isValidUrl(document.url) ? (
                         <div className="w-full">
                           {document.type?.toLowerCase().includes('pdf') ? (
                             <iframe
@@ -417,6 +428,11 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
                         <div className="text-center">
                           <FileText className="h-12 w-12 text-slate-400 mx-auto mb-2" />
                           <p className="text-sm text-slate-600">Aucun aperçu disponible</p>
+                          {document.url && !isValidUrl(document.url) && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              URL invalide: {document.url}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
