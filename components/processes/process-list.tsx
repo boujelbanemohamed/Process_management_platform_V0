@@ -35,7 +35,9 @@ export function ProcessList() {
           documents: process.documents || [],
           category: process.category || '',
           description: process.description || '',
-          updated_at: process.updated_at || process.created_at
+          updated_at: process.updated_at || process.created_at,
+          entities: process.entities || [],
+          entity_ids: process.entity_ids || []
         })) : []
         setProcesses(safeData)
       } catch (err) {
@@ -194,7 +196,26 @@ export function ProcessList() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-slate-600">Catégorie: {process.category}</p>
-                  <p className="text-sm text-slate-500">Modifié le {process.updated_at ? new Date(process.updated_at).toLocaleDateString('fr-FR') : 'Date inconnue'}</p>
+                  {process.entities && process.entities.length > 0 ? (
+                    <div className="mt-1">
+                      <p className="text-xs text-slate-500 mb-1">Entités affiliées:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {process.entities.slice(0, 2).map((entity: any) => (
+                          <Badge key={entity.id} variant="outline" className="text-xs">
+                            {entity.name}
+                          </Badge>
+                        ))}
+                        {process.entities.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{process.entities.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-1">Aucune entité affiliée</p>
+                  )}
+                  <p className="text-sm text-slate-500 mt-2">Modifié le {process.updated_at ? new Date(process.updated_at).toLocaleDateString('fr-FR') : 'Date inconnue'}</p>
                 </div>
 
                 {process.tags && process.tags.length > 0 && (

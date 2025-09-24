@@ -30,8 +30,15 @@ async function ensureCoreTables(sql: any) {
       created_by BIGINT REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      tags TEXT[]
+      tags TEXT[],
+      entity_ids BIGINT[]
     )
+  `
+  
+  // Ajouter la colonne entity_ids si elle n'existe pas
+  await sql`
+    ALTER TABLE processes
+    ADD COLUMN IF NOT EXISTS entity_ids BIGINT[]
   `
 }
 
@@ -44,7 +51,7 @@ export async function GET(request: NextRequest) {
     await ensureCoreTables(sql)
 
     if (id) {
-      // Récupérer un processus spécifique
+      // Récupérer un processus spécifique avec les entités
       const process = await sql`
         SELECT p.*, u.name as created_by_name
         FROM processes p
@@ -56,7 +63,21 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Process not found" }, { status: 404 })
       }
       
-      return NextResponse.json(process[0])
+      const processData = process[0]
+      
+      // Récupérer les entités associées
+      if (processData.entity_ids && processData.entity_ids.length > 0) {
+        const entities = await sql`
+          SELECT id, name, type
+          FROM entities
+          WHERE id = ANY(${processData.entity_ids})
+        `
+        processData.entities = entities
+      } else {
+        processData.entities = []
+      }
+      
+      return NextResponse.json(processData)
            } else {
              // Récupérer tous les processus avec le nombre de documents
              const processes = await sql`
@@ -71,7 +92,25 @@ export async function GET(request: NextRequest) {
                ) doc_count ON p.id = doc_count.process_id
                ORDER BY p.updated_at DESC
              `
-             return NextResponse.json(processes)
+             
+             // Pour chaque processus, récupérer les entités associées
+             const processesWithEntities = await Promise.all(
+               processes.map(async (process) => {
+                 if (process.entity_ids && process.entity_ids.length > 0) {
+                   const entities = await sql`
+                     SELECT id, name, type
+                     FROM entities
+                     WHERE id = ANY(${process.entity_ids})
+                   `
+                   process.entities = entities
+                 } else {
+                   process.entities = []
+                 }
+                 return process
+               })
+             )
+             
+             return NextResponse.json(processesWithEntities)
            }
   } catch (error) {
     console.error("Error fetching processes:", error)
@@ -82,7 +121,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, description, category, status, createdBy, tags } = await request.json()
+    const { name, description, category, status, createdBy, tags, entityIds } = await request.json()
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -100,11 +139,11 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Créer le processus d'abord sans les tags pour éviter les problèmes de sérialisation
+    // Créer le processus avec les entités
     const result = await sql`
-      INSERT INTO processes (name, description, category, status, created_by)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId})
-      RETURNING id, name, description, category, status, created_by, created_at, updated_at
+      INSERT INTO processes (name, description, category, status, created_by, entity_ids)
+      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${entityIds ? entityIds.map((id: string) => Number(id)) : null})
+      RETURNING id, name, description, category, status, created_by, created_at, updated_at, entity_ids
     `
     
     // Ajouter les tags séparément si nécessaire
@@ -134,7 +173,8 @@ export async function POST(request: NextRequest) {
       created_by: process.created_by,
       created_at: process.created_at,
       updated_at: process.updated_at,
-      tags: tags && Array.isArray(tags) ? tags : []
+      tags: tags && Array.isArray(tags) ? tags : [],
+      entity_ids: process.entity_ids || []
     }
 
     return NextResponse.json(serializableProcess, { status: 201 })
@@ -152,7 +192,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const idFromUrl = searchParams.get('id')
-    const { id, name, description, category, status, tags } = await request.json()
+    const { id, name, description, category, status, tags, entityIds } = await request.json()
 
     console.log('PUT request - URL:', request.url)
     console.log('PUT request - idFromUrl:', idFromUrl)
@@ -181,9 +221,10 @@ export async function PUT(request: NextRequest) {
           description = ${description || ''}, 
           category = ${category || ''}, 
           status = ${status || 'draft'},
+          entity_ids = ${entityIds ? entityIds.map((id: string) => Number(id)) : null},
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${processId}
-      RETURNING id, name, description, category, status, created_by, created_at, updated_at
+      RETURNING id, name, description, category, status, created_by, created_at, updated_at, entity_ids
     `
     
     if (result.length === 0) {

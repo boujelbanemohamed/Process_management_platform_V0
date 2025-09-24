@@ -22,6 +22,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
   const router = useRouter()
   const [existingProcess, setExistingProcess] = useState<Process | null>(null)
   const [loading, setLoading] = useState(false)
+  const [entities, setEntities] = useState<any[]>([])
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,7 +30,24 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
     category: "",
     status: "draft" as Process["status"],
     tags: [] as string[],
+    entityIds: [] as string[],
   })
+
+  // Charger les entités
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const response = await fetch("/api/entities")
+        if (response.ok) {
+          const data = await response.json()
+          setEntities(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error("Erreur chargement entités:", error)
+      }
+    }
+    loadEntities()
+  }, [])
 
   // Charger le processus existant si en mode édition
   useEffect(() => {
@@ -47,6 +65,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
               category: process.category || "",
               status: process.status || "draft",
               tags: process.tags || [],
+              entityIds: process.entity_ids ? process.entity_ids.map((id: number) => String(id)) : [],
             })
           }
         } catch (error) {
@@ -86,7 +105,10 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          entityIds: formData.entityIds
+        }),
       })
 
       if (!response.ok) {
@@ -124,6 +146,15 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
       e.preventDefault()
       addTag()
     }
+  }
+
+  const toggleEntity = (entityId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      entityIds: prev.entityIds.includes(entityId)
+        ? prev.entityIds.filter(id => id !== entityId)
+        : [...prev.entityIds, entityId]
+    }))
   }
 
   return (
@@ -235,6 +266,49 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
                       </button>
                     </Badge>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sélection des entités */}
+            <div className="space-y-2">
+              <Label>Entités affiliées</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-slate-200 rounded-md p-3">
+                {entities.length > 0 ? (
+                  entities.map((entity) => (
+                    <label key={entity.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.entityIds.includes(String(entity.id))}
+                        onChange={() => toggleEntity(String(entity.id))}
+                        className="rounded border-slate-300"
+                      />
+                      <span className="text-sm">
+                        {entity.name} ({entity.type})
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">Aucune entité disponible</p>
+                )}
+              </div>
+              {formData.entityIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {formData.entityIds.map((entityId) => {
+                    const entity = entities.find(e => String(e.id) === entityId)
+                    return entity ? (
+                      <Badge key={entityId} variant="secondary" className="text-xs">
+                        {entity.name}
+                        <button
+                          type="button"
+                          onClick={() => toggleEntity(entityId)}
+                          className="ml-1 hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null
+                  })}
                 </div>
               )}
             </div>
