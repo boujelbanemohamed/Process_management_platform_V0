@@ -186,7 +186,14 @@ export class CategoryService {
   }
 
   static async createCategory(category: { name: string; description: string; type: "process" | "document" | "entity"; color?: string; isSystem?: boolean }): Promise<Category | null> {
-    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(category) })
+    const payload = {
+      name: category.name?.trim(),
+      description: category.description ?? "",
+      type: category.type,
+      color: category.color || "#3B82F6",
+      isSystem: Boolean(category.isSystem),
+    }
+    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     if (!res.ok) return null
     const r = await res.json()
     return {

@@ -49,23 +49,28 @@ export async function POST(request: Request) {
   try {
     await ensureCategoriesTable()
     const body = await request.json()
-    const { name, description = "", type, color = "#3B82F6", isSystem = false } = body || {}
+    const rawName = (body?.name ?? "").toString().trim()
+    const rawDesc = (body?.description ?? "").toString()
+    const rawType = (body?.type ?? "").toString().trim()
+    const rawColor = (body?.color ?? "#3B82F6").toString().trim()
+    const isSystem = Boolean(body?.isSystem)
 
-    if (!name || !type) {
-      return NextResponse.json({ error: "Name and type are required" }, { status: 400 })
+    const allowedTypes = ["process", "document", "entity"]
+    if (!rawName || !rawType || !allowedTypes.includes(rawType)) {
+      return NextResponse.json({ error: "Invalid payload", details: "'name' et 'type' requis. type ∈ {process, document, entity}" }, { status: 400 })
     }
 
     const result = await DatabaseService.query(
       `INSERT INTO categories (name, description, type, color, is_system)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [name, description, type, color, Boolean(isSystem)],
+      [rawName, rawDesc, rawType, rawColor, isSystem],
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: any) {
-    console.error("POST /api/categories error:", error)
-    return NextResponse.json({ error: "Failed to create category", details: error?.message }, { status: 500 })
+    console.error("POST /api/categories error:", error?.message || error, error?.stack)
+    return NextResponse.json({ error: "Failed to create category", details: error?.message || String(error) }, { status: 500 })
   }
 }
 
