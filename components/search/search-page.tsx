@@ -28,24 +28,30 @@ export function SearchPage() {
 
   useEffect(() => {
     if (query.length > 2) {
-      setSuggestions(SearchService.getSuggestions(query))
+      SearchService.getSuggestions(query).then(setSuggestions)
     } else {
       setSuggestions([])
     }
   }, [query])
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!query.trim()) return
 
     setIsSearching(true)
-    const searchResults = SearchService.search(query, {
-      type: selectedTypes,
-      category: selectedCategory || undefined,
-    })
-    setResults(searchResults)
-    SearchService.addRecentSearch(query)
-    setRecentSearches(SearchService.getRecentSearches())
-    setIsSearching(false)
+    try {
+      const searchResults = await SearchService.search(query, {
+        type: selectedTypes,
+        category: selectedCategory || undefined,
+      })
+      setResults(searchResults)
+      SearchService.addRecentSearch(query)
+      setRecentSearches(SearchService.getRecentSearches())
+    } catch (error) {
+      console.error("Erreur lors de la recherche:", error)
+      setResults([])
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
