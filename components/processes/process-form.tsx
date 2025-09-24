@@ -23,6 +23,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
   const [existingProcess, setExistingProcess] = useState<Process | null>(null)
   const [loading, setLoading] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
+  const [processCategories, setProcessCategories] = useState<Array<{ id: string; name: string }>>([])
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,6 +48,24 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
       }
     }
     loadEntities()
+  }, [])
+
+  // Charger les catégories de type "process"
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await fetch("/api/categories?type=process", { cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          const list = (Array.isArray(data) ? data : []).map((c: any) => ({ id: String(c.id), name: c.name }))
+          setProcessCategories(list)
+        }
+      } catch (e) {
+        console.error("Erreur chargement catégories de processus:", e)
+        setProcessCategories([])
+      }
+    }
+    loadCategories()
   }, [])
 
   // Charger le processus existant si en mode édition
@@ -81,16 +100,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
   const [newTag, setNewTag] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const categories = [
-    "Ressources Humaines",
-    "Ventes",
-    "Production",
-    "Finance",
-    "Marketing",
-    "IT",
-    "Qualité",
-    "Logistique",
-  ]
+  // Catégories supprimées (désormais dynamiques)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -198,7 +208,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Catégorie *</Label>
+                <Label htmlFor="category">Catégorie *</nLabel>
                 <select
                   id="category"
                   value={formData.category}
@@ -207,9 +217,9 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
                   required
                 >
                   <option value="">Sélectionner une catégorie</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
+                  {processCategories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
