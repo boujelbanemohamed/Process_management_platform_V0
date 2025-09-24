@@ -149,7 +149,7 @@ export class CategoryService {
   static async getCategories(type?: "process" | "document" | "entity"): Promise<Category[]> {
     try {
       const url = type ? `/api/categories?type=${encodeURIComponent(type)}` : `/api/categories`
-      const res = await fetch(url)
+    const res = await fetch(url, { cache: 'no-store' })
       if (!res.ok) return []
       const data = await res.json()
       const rows = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : [])
@@ -193,7 +193,7 @@ export class CategoryService {
       color: category.color || "#3B82F6",
       isSystem: Boolean(category.isSystem),
     }
-    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), cache: 'no-store' })
     if (!res.ok) return null
     const r = await res.json()
     return {
@@ -217,7 +217,7 @@ export class CategoryService {
       color: updates.color,
       isSystem: updates.isSystem,
     }
-    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), cache: 'no-store' })
     if (!res.ok) return null
     const r = await res.json()
     return {
@@ -233,7 +233,7 @@ export class CategoryService {
   }
 
   static async deleteCategory(id: string): Promise<boolean> {
-    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    const res = await fetch(`/api/categories?id=${encodeURIComponent(id)}`, { method: 'DELETE', cache: 'no-store' })
     return res.ok
   }
 }

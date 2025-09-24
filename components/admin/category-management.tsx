@@ -32,7 +32,10 @@ export function CategoryManagement() {
   useEffect(() => {
     const load = async () => {
       const all = await CategoryService.getCategories()
-      setCategories(Array.isArray(all) ? all : [])
+      const list = Array.isArray(all) ? all : []
+      // Debug légère côté client
+      try { console.log("📥 Catégories chargées:", list.length) } catch {}
+      setCategories(list)
     }
     load()
   }, [])
@@ -89,10 +92,15 @@ export function CategoryManagement() {
         setCategories((prev) => [created, ...prev])
         // Fermer le formulaire et reset
         resetForm()
+        // S'assurer que les filtres n'excluent pas l'élément créé
+        setSelectedType("all")
+        setSearchTerm("")
         // Refetch décalé pour éviter une éventuelle latence de propagation
         setTimeout(async () => {
           const all = await CategoryService.getCategories()
-          setCategories(Array.isArray(all) ? all : [])
+          const list = Array.isArray(all) ? all : []
+          try { console.log("🔄 Rafraîchi catégories:", list.length) } catch {}
+          setCategories(list)
         }, 1200)
       }
     }
