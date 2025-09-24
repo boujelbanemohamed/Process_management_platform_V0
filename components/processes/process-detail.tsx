@@ -23,6 +23,8 @@ interface Process {
   updated_at: string
   tags: string[]
   created_by_name?: string
+  entities?: any[]
+  entity_ids?: number[]
 }
 
 interface Document {
@@ -68,7 +70,9 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
           created_at: processData.created_at || new Date().toISOString(),
           updated_at: processData.updated_at || new Date().toISOString(),
           tags: processData.tags || [],
-          created_by_name: processData.created_by_name
+          created_by_name: processData.created_by_name,
+          entities: processData.entities || [],
+          entity_ids: processData.entity_ids || []
         }
         setProcess(normalizedProcess)
         
@@ -274,6 +278,43 @@ export function ProcessDetail({ processId }: ProcessDetailProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Entités affiliées */}
+      <Card className="border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Entités affiliées
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {process.entities && process.entities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {process.entities.map((entity: any) => (
+                <div key={entity.id} className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                    <Users className="h-4 w-4 text-slate-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-800">{entity.name}</p>
+                    <p className="text-sm text-slate-500 capitalize">{entity.type}</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/entities/${entity.id}`}>
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Aucune entité affiliée à ce processus</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <Tabs defaultValue="documents" className="space-y-4">
