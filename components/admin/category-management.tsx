@@ -25,7 +25,7 @@ export function CategoryManagement() {
   })
 
   const { user } = useAuth()
-  const canManageCategories = user?.role === "admin"
+  const canManageCategories = !!user && (user.role === "admin" || user.role === "contributor")
 
   // Charger dynamiquement les catégories
   useEffect(() => {
