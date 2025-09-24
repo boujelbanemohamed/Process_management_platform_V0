@@ -142,15 +142,26 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
     try {
       // Mettre à jour chaque utilisateur sélectionné
       for (const userId of userIds) {
-        await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "update-user",
-            userId: userId,
-            entityId: entityId,
-          }),
-        })
+        // Récupérer les données complètes de l'utilisateur
+        const user = allUsers.find(u => String(u.id) === userId)
+        if (user) {
+          const response = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "update-user",
+              userId: userId,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              entityId: entityId,
+            }),
+          })
+          
+          if (!response.ok) {
+            console.error(`Erreur mise à jour utilisateur ${userId}:`, await response.text())
+          }
+        }
       }
 
       // Retirer l'entité des utilisateurs non sélectionnés
@@ -158,15 +169,25 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
       const usersToRemove = currentUserIds.filter(id => !userIds.includes(id))
       
       for (const userId of usersToRemove) {
-        await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "update-user",
-            userId: userId,
-            entityId: null,
-          }),
-        })
+        const user = allUsers.find(u => String(u.id) === userId)
+        if (user) {
+          const response = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "update-user",
+              userId: userId,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              entityId: null,
+            }),
+          })
+          
+          if (!response.ok) {
+            console.error(`Erreur suppression entité pour utilisateur ${userId}:`, await response.text())
+          }
+        }
       }
     } catch (error) {
       console.error("Erreur mise à jour utilisateurs:", error)
