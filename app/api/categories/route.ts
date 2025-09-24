@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 import { DatabaseService } from "@/lib/database"
 
 // Assure l'existence de la table catégories
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
   try {
     await ensureCategoriesTable()
     const body = await request.json()
+    console.log("[POST /api/categories] payload:", body)
     const rawName = (body?.name ?? "").toString().trim()
     const rawDesc = (body?.description ?? "").toString()
     const rawType = (body?.type ?? "").toString().trim()
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
        RETURNING *`,
       [rawName, rawDesc, rawType, rawColor, isSystem],
     )
+    console.log("[POST /api/categories] inserted:", result.rows?.[0])
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error: any) {
