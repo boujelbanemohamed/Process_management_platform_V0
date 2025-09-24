@@ -30,14 +30,15 @@ export function CategoryManagement() {
 
   // Charger dynamiquement les catégories
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       const all = await CategoryService.getCategories()
       const list = Array.isArray(all) ? all : []
-      // Debug légère côté client
-      try { console.log("📥 Catégories chargées:", list.length) } catch {}
-      setCategories(list)
+      if (!cancelled) setCategories(list)
     }
     load()
+    const interval = setInterval(load, 2500)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
   const filteredCategories = categories.filter((category) => {

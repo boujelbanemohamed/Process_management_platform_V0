@@ -149,7 +149,7 @@ export class CategoryService {
   static async getCategories(type?: "process" | "document" | "entity"): Promise<Category[]> {
     try {
       const url = type ? `/api/categories?type=${encodeURIComponent(type)}` : `/api/categories`
-    const res = await fetch(url, { cache: 'no-store' })
+    const res = await fetch(url, { cache: 'no-store', headers: { 'x-no-cache': '1' } })
       if (!res.ok) return []
       const data = await res.json()
       const rows = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : [])
@@ -193,7 +193,7 @@ export class CategoryService {
       color: category.color || "#3B82F6",
       isSystem: Boolean(category.isSystem),
     }
-    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), cache: 'no-store' })
+    const res = await fetch(`/api/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-no-cache': '1' }, body: JSON.stringify(payload), cache: 'no-store' })
     if (!res.ok) return null
     const r = await res.json()
     return {

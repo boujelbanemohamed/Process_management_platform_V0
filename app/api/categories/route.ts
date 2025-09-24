@@ -38,10 +38,13 @@ export async function GET(request: Request) {
     }
 
     const type = searchParams.get("type")
-    const query = type ? `SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories WHERE type = $1 ORDER BY id DESC` : `SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories ORDER BY id DESC`
-    const params = type ? [type] : []
-    const result = await DatabaseService.query(query, params)
-    return NextResponse.json(Array.isArray(result.rows) ? result.rows : [])
+    const url = process.env.DATABASE_URL
+    if (!url) return NextResponse.json([], { status: 200 })
+    const sql = neon(url)
+    const rows = type
+      ? await sql`SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories WHERE "type" = ${type} ORDER BY id DESC`
+      : await sql`SELECT id, name, description, "type", color, is_system, created_at, updated_at FROM categories ORDER BY id DESC`
+    return NextResponse.json(Array.isArray(rows) ? rows : [])
   } catch (error: any) {
     console.error("GET /api/categories error:", error)
     return NextResponse.json({ error: "Failed to fetch categories", details: error?.message }, { status: 500 })
