@@ -209,7 +209,7 @@ export function ProcessForm({ processId, mode }: ProcessFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Catégorie *</nLabel>
+                <Label htmlFor="category">Catégorie *</Label>
                 <select
                   id="category"
                   value={formData.category}
