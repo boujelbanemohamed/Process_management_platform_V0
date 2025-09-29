@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, DollarSign, Users, Building2, Save, X, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Building2, Save, X, AlertCircle } from 'lucide-react';
 import { ProjectService, ProjectFormData, ProjectValidationErrors } from '@/lib/projects';
 
 interface Project {
@@ -300,18 +300,18 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (DT)</Label>
+              <Label htmlFor="budget">Budget (TND)</Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <span className="absolute left-3 top-3 text-sm text-muted-foreground font-medium">TND</span>
                 <Input
                   id="budget"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="0.001"
                   value={formData.budget || ''}
                   onChange={(e) => handleFieldChange('budget', parseFloat(e.target.value) || 0)}
-                  className={`pl-10 ${errors.budget ? 'border-red-500' : ''}`}
-                  placeholder="0.00"
+                  className={`pl-12 ${errors.budget ? 'border-red-500' : ''}`}
+                  placeholder="0.000"
                 />
               </div>
             </div>

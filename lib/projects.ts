@@ -166,8 +166,8 @@ export class ProjectService {
   static formatCurrency(amount: number): string {
     if (!amount) return 'Non défini';
     return new Intl.NumberFormat('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
     }).format(amount);
   }
 
