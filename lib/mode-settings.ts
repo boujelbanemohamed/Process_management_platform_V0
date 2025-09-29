@@ -120,30 +120,45 @@ export class ModeSettingsService {
   static applyAccessibilitySettings(settings: ModeSettings): void {
     const root = document.documentElement;
     
+    console.log('🎨 Application des paramètres d\'accessibilité:', settings.accessibility);
+    
     // Contraste élevé
     if (settings.accessibility.highContrast) {
       root.classList.add('high-contrast');
+      console.log('✅ Contraste élevé activé');
     } else {
       root.classList.remove('high-contrast');
+      console.log('❌ Contraste élevé désactivé');
     }
 
     // Mouvement réduit
     if (settings.accessibility.reducedMotion) {
       root.classList.add('reduced-motion');
+      console.log('✅ Mouvement réduit activé');
     } else {
       root.classList.remove('reduced-motion');
+      console.log('❌ Mouvement réduit désactivé');
     }
 
     // Taille de police
     root.classList.remove('font-small', 'font-medium', 'font-large');
     root.classList.add(`font-${settings.accessibility.fontSize}`);
+    console.log(`✅ Taille de police: ${settings.accessibility.fontSize}`);
   }
 
   static applyCustomColors(settings: ModeSettings): void {
     const root = document.documentElement;
     
+    console.log('🎨 Application des couleurs personnalisées:', settings.customColors);
+    
     root.style.setProperty('--color-primary', settings.customColors.primary);
     root.style.setProperty('--color-secondary', settings.customColors.secondary);
     root.style.setProperty('--color-accent', settings.customColors.accent);
+    
+    console.log('✅ Couleurs appliquées:', {
+      primary: settings.customColors.primary,
+      secondary: settings.customColors.secondary,
+      accent: settings.customColors.accent
+    });
   }
 }
