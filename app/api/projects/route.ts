@@ -84,11 +84,15 @@ export async function GET(request: NextRequest) {
           const memberCountResult = await sql`
             SELECT COUNT(*) as count FROM project_members WHERE project_id = ${project.id}
           `;
+          const documentCountResult = await sql`
+            SELECT COUNT(*) as count FROM documents WHERE project_id = ${project.id} AND link_type = 'project'
+          `;
           
           return {
             ...project,
             entity_count: parseInt(entityCountResult[0].count),
-            member_count: parseInt(memberCountResult[0].count)
+            member_count: parseInt(memberCountResult[0].count),
+            document_count: parseInt(documentCountResult[0].count)
           };
         })
       );

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Edit, Trash2, Eye, Plus } from 'lucide-react';
+import { Calendar, Users, Building2, Edit, Trash2, Eye, Plus, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -183,6 +183,11 @@ export function ProjectList() {
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Entités:</span>
                 <span>{project.entity_count}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Documents:</span>
+                <span>{project.document_count || 0}</span>
               </div>
             </div>
 

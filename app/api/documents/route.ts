@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const processId = searchParams.get('processId')
+    const projectId = searchParams.get('projectId')
     const type = searchParams.get('type')
     
     const sql = getSql()
@@ -27,11 +28,15 @@ export async function GET(request: NextRequest) {
         uploaded_by BIGINT,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         process_id BIGINT,
+        project_id BIGINT,
+        link_type VARCHAR(20) DEFAULT 'process',
         url VARCHAR(500)
       )
     `
-    // Migration douce: s'assurer que la colonne description existe
+    // Migration douce: s'assurer que les colonnes existent
     await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS project_id BIGINT`
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS link_type VARCHAR(20) DEFAULT 'process'`
     
     let rows: any[] = []
     if (id) {
@@ -54,6 +59,15 @@ export async function GET(request: NextRequest) {
         LEFT JOIN users u ON d.uploaded_by = u.id
         LEFT JOIN processes p ON d.process_id = p.id
         WHERE d.process_id = ${Number(processId)}
+        ORDER BY d.uploaded_at DESC
+      `
+    } else if (projectId) {
+      rows = await sql`
+        SELECT d.*, u.name as uploaded_by_name, pr.name as project_name
+        FROM documents d
+        LEFT JOIN users u ON d.uploaded_by = u.id
+        LEFT JOIN projects pr ON d.project_id = pr.id
+        WHERE d.project_id = ${Number(projectId)} AND d.link_type = 'project'
         ORDER BY d.uploaded_at DESC
       `
     } else if (type) {
