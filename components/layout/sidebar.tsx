@@ -133,15 +133,17 @@ export function Sidebar() {
             <p className="text-xs text-slate-400 capitalize">{user.role}</p>
           </div>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className="justify-start text-slate-300 hover:text-white hover:bg-slate-800"
-        >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span className="ml-3">Déconnexion</span>}
-        </Button>
+        <div className="flex justify-start">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="inline-flex items-center px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            {!collapsed && <span className="ml-3">Déconnexion</span>}
+          </Button>
+        </div>
       </div>
     </div>
   )
