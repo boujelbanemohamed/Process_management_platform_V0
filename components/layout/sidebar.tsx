@@ -57,6 +57,12 @@ export function Sidebar() {
   const user = AuthService.getCurrentUser()
   const isAdmin = user?.role === "admin"
   const isSuperAdmin = user?.role === "super_admin"
+  
+  // Debug: afficher le rôle de l'utilisateur
+  console.log('🔍 Debug Sidebar - User:', user)
+  console.log('🔍 Debug Sidebar - Role:', user?.role)
+  console.log('🔍 Debug Sidebar - isAdmin:', isAdmin)
+  console.log('🔍 Debug Sidebar - isSuperAdmin:', isSuperAdmin)
 
   const handleLogout = () => {
     AuthService.logout()
@@ -102,8 +108,8 @@ export function Sidebar() {
           })}
         </div>
 
-        {/* Mode Navigation - Super Admin only */}
-        {isSuperAdmin && (
+        {/* Mode Navigation - Admin and Super Admin */}
+        {(isAdmin || isSuperAdmin) && (
           <div className="space-y-2">
             {!collapsed && (
               <div className="px-3 py-2">
