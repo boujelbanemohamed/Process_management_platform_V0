@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Euro, Edit, Trash2, Eye } from 'lucide-react';
+import { Calendar, Users, Building2, Euro, Edit, Trash2, Eye, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
