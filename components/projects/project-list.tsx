@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Euro, Edit, Trash2, Eye, Plus } from 'lucide-react';
+import { Calendar, Users, Building2, DollarSign, Edit, Trash2, Eye, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -188,9 +188,9 @@ export function ProjectList() {
 
             {project.budget && (
               <div className="flex items-center gap-2 text-sm">
-                <Euro className="h-4 w-4 text-muted-foreground" />
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Budget:</span>
-                <span className="font-medium">{formatCurrency(project.budget)}</span>
+                <span className="font-medium">{formatCurrency(project.budget)} DT</span>
               </div>
             )}
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Euro, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Calendar, Users, Building2, DollarSign, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -200,7 +200,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
             {project.budget && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Budget:</span>
-                <span className="font-medium">{formatCurrency(project.budget)}</span>
+                <span className="font-medium">{formatCurrency(project.budget)} DT</span>
               </div>
             )}
           </CardContent>

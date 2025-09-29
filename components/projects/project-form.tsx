@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Euro, Users, Building2, Save, X, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, Users, Building2, Save, X, AlertCircle } from 'lucide-react';
 import { ProjectService, ProjectFormData, ProjectValidationErrors } from '@/lib/projects';
 
 interface Project {
@@ -300,9 +300,9 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (€)</Label>
+              <Label htmlFor="budget">Budget (DT)</Label>
               <div className="relative">
-                <Euro className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="budget"
                   type="number"

@@ -138,12 +138,6 @@ export class ProjectService {
     if (data.start_date && data.end_date) {
       const startDate = new Date(data.start_date);
       const endDate = new Date(data.end_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (startDate < today) {
-        errors.start_date = 'La date de début ne peut pas être dans le passé';
-      }
 
       if (endDate < startDate) {
         errors.end_date = 'La date de fin doit être postérieure à la date de début';
@@ -162,7 +156,7 @@ export class ProjectService {
       if (data.budget < 0) {
         errors.budget = 'Le budget ne peut pas être négatif';
       } else if (data.budget > 999999999.99) {
-        errors.budget = 'Le budget ne peut pas dépasser 999 999 999,99 €';
+        errors.budget = 'Le budget ne peut pas dépasser 999 999 999,99 DT';
       }
     }
 
@@ -172,8 +166,8 @@ export class ProjectService {
   static formatCurrency(amount: number): string {
     if (!amount) return 'Non défini';
     return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   }
 
