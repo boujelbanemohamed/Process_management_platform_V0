@@ -58,19 +58,35 @@ export async function GET(request: NextRequest) {
       const query = `
         SELECT 
           p.*,
-          u.name as created_by_name,
-          COUNT(DISTINCT pe.entity_id) as entity_count,
-          COUNT(DISTINCT pm.user_id) as member_count
+          u.name as created_by_name
         FROM projects p
         LEFT JOIN users u ON p.created_by = u.id
-        LEFT JOIN project_entities pe ON p.id = pe.project_id
-        LEFT JOIN project_members pm ON p.id = pm.project_id
-        GROUP BY p.id, u.name
         ORDER BY p.created_at DESC
       `;
       
       const result = await DatabaseService.query(query);
-      return NextResponse.json(result.rows);
+      
+      // Get counts for each project
+      const projectsWithCounts = await Promise.all(
+        result.rows.map(async (project) => {
+          const entityCountResult = await DatabaseService.query(
+            'SELECT COUNT(*) as count FROM project_entities WHERE project_id = $1',
+            [project.id]
+          );
+          const memberCountResult = await DatabaseService.query(
+            'SELECT COUNT(*) as count FROM project_members WHERE project_id = $1',
+            [project.id]
+          );
+          
+          return {
+            ...project,
+            entity_count: parseInt(entityCountResult.rows[0].count),
+            member_count: parseInt(memberCountResult.rows[0].count)
+          };
+        })
+      );
+      
+      return NextResponse.json(projectsWithCounts);
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des projets:', error);
