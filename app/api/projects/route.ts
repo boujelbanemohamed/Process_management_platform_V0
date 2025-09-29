@@ -1,43 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/database-service';
+import { neon } from "@neondatabase/serverless";
+
+function getSql() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL not set");
+  return neon(url);
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const sql = getSql();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (id) {
       // Get single project with details
-      const projectQuery = `
+      const projectResult = await sql`
         SELECT 
           p.*,
           u.name as created_by_name,
           u.email as created_by_email
         FROM projects p
         LEFT JOIN users u ON p.created_by = u.id
-        WHERE p.id = $1
+        WHERE p.id = ${id}
       `;
       
-      const projectResult = await DatabaseService.query(projectQuery, [id]);
-      
-      if (projectResult.rows.length === 0) {
+      if (projectResult.length === 0) {
         return NextResponse.json({ error: 'Projet non trouvé' }, { status: 404 });
       }
 
-      const project = projectResult.rows[0];
+      const project = projectResult[0];
 
       // Get project entities
-      const entitiesQuery = `
+      const entitiesResult = await sql`
         SELECT e.*
         FROM entities e
         JOIN project_entities pe ON e.id = pe.entity_id
-        WHERE pe.project_id = $1
+        WHERE pe.project_id = ${id}
       `;
-      const entitiesResult = await DatabaseService.query(entitiesQuery, [id]);
-      project.entities = entitiesResult.rows;
+      project.entities = entitiesResult;
 
       // Get project members
-      const membersQuery = `
+      const membersResult = await sql`
         SELECT 
           u.id,
           u.name,
@@ -47,15 +51,14 @@ export async function GET(request: NextRequest) {
           pm.joined_at
         FROM users u
         JOIN project_members pm ON u.id = pm.user_id
-        WHERE pm.project_id = $1
+        WHERE pm.project_id = ${id}
       `;
-      const membersResult = await DatabaseService.query(membersQuery, [id]);
-      project.members = membersResult.rows;
+      project.members = membersResult;
 
       return NextResponse.json(project);
     } else {
       // Get all projects with basic info
-      const query = `
+      const result = await sql`
         SELECT 
           p.*,
           u.name as created_by_name
@@ -64,24 +67,20 @@ export async function GET(request: NextRequest) {
         ORDER BY p.created_at DESC
       `;
       
-      const result = await DatabaseService.query(query);
-      
       // Get counts for each project
       const projectsWithCounts = await Promise.all(
-        result.rows.map(async (project) => {
-          const entityCountResult = await DatabaseService.query(
-            'SELECT COUNT(*) as count FROM project_entities WHERE project_id = $1',
-            [project.id]
-          );
-          const memberCountResult = await DatabaseService.query(
-            'SELECT COUNT(*) as count FROM project_members WHERE project_id = $1',
-            [project.id]
-          );
+        result.map(async (project) => {
+          const entityCountResult = await sql`
+            SELECT COUNT(*) as count FROM project_entities WHERE project_id = ${project.id}
+          `;
+          const memberCountResult = await sql`
+            SELECT COUNT(*) as count FROM project_members WHERE project_id = ${project.id}
+          `;
           
           return {
             ...project,
-            entity_count: parseInt(entityCountResult.rows[0].count),
-            member_count: parseInt(memberCountResult.rows[0].count)
+            entity_count: parseInt(entityCountResult[0].count),
+            member_count: parseInt(memberCountResult[0].count)
           };
         })
       );
@@ -102,6 +101,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const sql = getSql();
     const body = await request.json();
     
     // Validation
@@ -132,41 +132,29 @@ export async function POST(request: NextRequest) {
     const currentUserId = 1; // TODO: Get from auth context
 
     // Create project
-    const insertQuery = `
+    const projectResult = await sql`
       INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES (${name.trim()}, ${description?.trim() || null}, ${status || 'planning'}, ${start_date || null}, ${end_date || null}, ${budget || null}, ${currentUserId})
       RETURNING *
     `;
-    
-    const projectResult = await DatabaseService.query(insertQuery, [
-      name.trim(),
-      description?.trim() || null,
-      status || 'planning',
-      start_date || null,
-      end_date || null,
-      budget || null,
-      currentUserId
-    ]);
 
-    const project = projectResult.rows[0];
+    const project = projectResult[0];
 
     // Add entities if provided
     if (entity_ids && entity_ids.length > 0) {
       for (const entityId of entity_ids) {
-        await DatabaseService.query(
-          'INSERT INTO project_entities (project_id, entity_id) VALUES ($1, $2)',
-          [project.id, entityId]
-        );
+        await sql`
+          INSERT INTO project_entities (project_id, entity_id) VALUES (${project.id}, ${entityId})
+        `;
       }
     }
 
     // Add members if provided
     if (member_ids && member_ids.length > 0) {
       for (const memberId of member_ids) {
-        await DatabaseService.query(
-          'INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3)',
-          [project.id, memberId, 'member']
-        );
+        await sql`
+          INSERT INTO project_members (project_id, user_id, role) VALUES (${project.id}, ${memberId}, 'member')
+        `;
       }
     }
 
@@ -182,6 +170,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const sql = getSql();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
@@ -218,53 +207,41 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update project
-    const updateQuery = `
+    const projectResult = await sql`
       UPDATE projects 
-      SET name = COALESCE($1, name),
-          description = COALESCE($2, description),
-          status = COALESCE($3, status),
-          start_date = COALESCE($4, start_date),
-          end_date = COALESCE($5, end_date),
-          budget = COALESCE($6, budget),
+      SET name = COALESCE(${name?.trim() || null}, name),
+          description = COALESCE(${description?.trim() || null}, description),
+          status = COALESCE(${status || null}, status),
+          start_date = COALESCE(${start_date || null}, start_date),
+          end_date = COALESCE(${end_date || null}, end_date),
+          budget = COALESCE(${budget || null}, budget),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = ${id}
       RETURNING *
     `;
-    
-    const projectResult = await DatabaseService.query(updateQuery, [
-      name?.trim() || null,
-      description?.trim() || null,
-      status || null,
-      start_date || null,
-      end_date || null,
-      budget || null,
-      id
-    ]);
 
-    if (projectResult.rows.length === 0) {
+    if (projectResult.length === 0) {
       return NextResponse.json(
         { error: 'Projet non trouvé' },
         { status: 404 }
       );
     }
 
-    const project = projectResult.rows[0];
+    const project = projectResult[0];
 
     // Update entities if provided
     if (entity_ids !== undefined) {
       // Remove existing entities
-      await DatabaseService.query(
-        'DELETE FROM project_entities WHERE project_id = $1',
-        [id]
-      );
+      await sql`
+        DELETE FROM project_entities WHERE project_id = ${id}
+      `;
       
       // Add new entities
       if (entity_ids.length > 0) {
         for (const entityId of entity_ids) {
-          await DatabaseService.query(
-            'INSERT INTO project_entities (project_id, entity_id) VALUES ($1, $2)',
-            [id, entityId]
-          );
+          await sql`
+            INSERT INTO project_entities (project_id, entity_id) VALUES (${id}, ${entityId})
+          `;
         }
       }
     }
@@ -272,18 +249,16 @@ export async function PUT(request: NextRequest) {
     // Update members if provided
     if (member_ids !== undefined) {
       // Remove existing members
-      await DatabaseService.query(
-        'DELETE FROM project_members WHERE project_id = $1',
-        [id]
-      );
+      await sql`
+        DELETE FROM project_members WHERE project_id = ${id}
+      `;
       
       // Add new members
       if (member_ids.length > 0) {
         for (const memberId of member_ids) {
-          await DatabaseService.query(
-            'INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3)',
-            [id, memberId, 'member']
-          );
+          await sql`
+            INSERT INTO project_members (project_id, user_id, role) VALUES (${id}, ${memberId}, 'member')
+          `;
         }
       }
     }
@@ -300,6 +275,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const sql = getSql();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
@@ -311,10 +287,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete project (cascade will handle related records)
-    const deleteQuery = 'DELETE FROM projects WHERE id = $1 RETURNING id';
-    const result = await DatabaseService.query(deleteQuery, [id]);
+    const result = await sql`
+      DELETE FROM projects WHERE id = ${id} RETURNING id
+    `;
 
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'Projet non trouvé' },
         { status: 404 }
