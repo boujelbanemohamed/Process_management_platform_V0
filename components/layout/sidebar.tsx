@@ -137,7 +137,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           onClick={handleLogout}
-          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+          className="justify-start text-slate-300 hover:text-white hover:bg-slate-800"
         >
           <LogOut className="h-4 w-4" />
           {!collapsed && <span className="ml-3">Déconnexion</span>}
