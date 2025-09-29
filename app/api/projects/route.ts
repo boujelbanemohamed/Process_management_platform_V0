@@ -13,6 +13,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
+    // Vérifier si les tables existent, sinon retourner un tableau vide
+    try {
+      await sql`SELECT 1 FROM projects LIMIT 1`;
+    } catch (error) {
+      // Si les tables n'existent pas, retourner un tableau vide
+      return NextResponse.json([]);
+    }
+
     if (id) {
       // Get single project with details
       const projectResult = await sql`
