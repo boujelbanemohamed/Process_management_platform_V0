@@ -22,6 +22,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useModeSettings } from '@/hooks/use-mode-settings';
+import { ModeTest } from './mode-test';
 
 export function ModeConfiguration() {
   const { settings, loading, updateSettings, resetSettings, currentTheme } = useModeSettings();
@@ -350,6 +351,9 @@ export function ModeConfiguration() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Composant de test pour debug */}
+      <ModeTest />
     </div>
   );
 }
