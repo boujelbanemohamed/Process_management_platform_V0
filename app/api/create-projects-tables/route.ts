@@ -47,31 +47,37 @@ export async function POST() {
       )
     `;
 
-    // Insert sample projects
-    await sql`
-      INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by) VALUES
-      ('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', '2024-01-15', '2024-06-30', 50000.00, 1),
-      ('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', '2024-03-01', '2024-08-31', 75000.00, 2)
-      ON CONFLICT DO NOTHING
-    `;
+    // Vérifier si des utilisateurs existent
+    const users = await sql`SELECT id FROM users LIMIT 1`;
+    if (users.length > 0) {
+      // Insert sample projects seulement si des utilisateurs existent
+      await sql`
+        INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by) VALUES
+        ('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', '2024-01-15', '2024-06-30', 50000.00, ${users[0].id}),
+        ('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', '2024-03-01', '2024-08-31', 75000.00, ${users[0].id})
+        ON CONFLICT DO NOTHING
+      `;
 
-    // Link projects to entities
-    await sql`
-      INSERT INTO project_entities (project_id, entity_id) VALUES
-      (1, 1),
-      (2, 2)
-      ON CONFLICT DO NOTHING
-    `;
+      // Vérifier si des entités existent
+      const entities = await sql`SELECT id FROM entities LIMIT 2`;
+      if (entities.length > 0) {
+        // Link projects to entities
+        await sql`
+          INSERT INTO project_entities (project_id, entity_id) VALUES
+          (1, ${entities[0].id}),
+          (2, ${entities.length > 1 ? entities[1].id : entities[0].id})
+          ON CONFLICT DO NOTHING
+        `;
+      }
 
-    // Link projects to members
-    await sql`
-      INSERT INTO project_members (project_id, user_id, role) VALUES
-      (1, 1, 'manager'),
-      (1, 2, 'member'),
-      (2, 2, 'manager'),
-      (2, 3, 'member')
-      ON CONFLICT DO NOTHING
-    `;
+      // Link projects to members
+      await sql`
+        INSERT INTO project_members (project_id, user_id, role) VALUES
+        (1, ${users[0].id}, 'manager'),
+        (2, ${users[0].id}, 'manager')
+        ON CONFLICT DO NOTHING
+      `;
+    }
 
     return NextResponse.json({ 
       success: true, 
