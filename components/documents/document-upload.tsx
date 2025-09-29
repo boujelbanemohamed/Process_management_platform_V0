@@ -14,7 +14,9 @@ import { Upload, X, FileText, ArrowLeft } from "lucide-react"
 interface UploadFile {
   id: string
   file: File
+  linkType: 'process' | 'project'
   processId: string
+  projectId: string
   description: string
 }
 
@@ -23,7 +25,9 @@ export function DocumentUpload() {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [processes, setProcesses] = useState<Array<{ id: number | string; name: string }>>([])
+  const [projects, setProjects] = useState<Array<{ id: number | string; name: string }>>([])
   const [loadingProcesses, setLoadingProcesses] = useState(false)
+  const [loadingProjects, setLoadingProjects] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -42,7 +46,25 @@ export function DocumentUpload() {
         setLoadingProcesses(false)
       }
     }
+
+    const fetchProjects = async () => {
+      try {
+        setLoadingProjects(true)
+        const res = await fetch("/api/projects")
+        if (!res.ok) throw new Error("Erreur lors du chargement des projets")
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : []
+        setProjects(list.map((p: any) => ({ id: p.id, name: p.name })))
+      } catch (e) {
+        console.error("Erreur chargement projets:", e)
+        setProjects([])
+      } finally {
+        setLoadingProjects(false)
+      }
+    }
+
     fetchProcesses()
+    fetchProjects()
   }, [])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +72,9 @@ export function DocumentUpload() {
     const newFiles = selectedFiles.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
+      linkType: 'process' as 'process' | 'project',
       processId: "",
+      projectId: "",
       description: "",
     }))
     setFiles((prev) => [...prev, ...newFiles])
@@ -75,7 +99,9 @@ export function DocumentUpload() {
       for (const f of files) {
         const fd = new FormData()
         fd.append('file', f.file)
+        fd.append('linkType', f.linkType)
         fd.append('processId', f.processId)
+        fd.append('projectId', f.projectId)
         fd.append('description', f.description)
 
         const res = await fetch('/api/uploads', { method: 'POST', body: fd })
@@ -172,33 +198,74 @@ export function DocumentUpload() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor={`process-${uploadFile.id}`}>Processus associé</Label>
+                      <Label htmlFor={`linkType-${uploadFile.id}`}>Type de liaison</Label>
                       <select
-                        id={`process-${uploadFile.id}`}
-                        value={uploadFile.processId}
-                        onChange={(e) => updateFile(uploadFile.id, { processId: e.target.value })}
+                        id={`linkType-${uploadFile.id}`}
+                        value={uploadFile.linkType}
+                        onChange={(e) => updateFile(uploadFile.id, { 
+                          linkType: e.target.value as 'process' | 'project',
+                          processId: '',
+                          projectId: ''
+                        })}
                         className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
                       >
-                        <option value="">Sélectionner un processus</option>
-                        {processes.map((process) => (
-                          <option key={process.id} value={String(process.id)}>
-                            {process.name}
-                          </option>
-                        ))}
+                        <option value="process">Processus</option>
+                        <option value="project">Projet</option>
                       </select>
                     </div>
-                    <div>
-                      <Label htmlFor={`description-${uploadFile.id}`}>Description</Label>
-                      <Textarea
-                        id={`description-${uploadFile.id}`}
-                        value={uploadFile.description}
-                        onChange={(e) => updateFile(uploadFile.id, { description: e.target.value })}
-                        placeholder="Description du document..."
-                        className="mt-1"
-                        rows={2}
-                      />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {uploadFile.linkType === 'process' ? (
+                        <div>
+                          <Label htmlFor={`process-${uploadFile.id}`}>Processus associé</Label>
+                          <select
+                            id={`process-${uploadFile.id}`}
+                            value={uploadFile.processId}
+                            onChange={(e) => updateFile(uploadFile.id, { processId: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                            disabled={loadingProcesses}
+                          >
+                            <option value="">{loadingProcesses ? "Chargement..." : "Sélectionner un processus"}</option>
+                            {processes.map((process) => (
+                              <option key={process.id} value={String(process.id)}>
+                                {process.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor={`project-${uploadFile.id}`}>Projet associé</Label>
+                          <select
+                            id={`project-${uploadFile.id}`}
+                            value={uploadFile.projectId}
+                            onChange={(e) => updateFile(uploadFile.id, { projectId: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                            disabled={loadingProjects}
+                          >
+                            <option value="">{loadingProjects ? "Chargement..." : "Sélectionner un projet"}</option>
+                            {projects.map((project) => (
+                              <option key={project.id} value={String(project.id)}>
+                                {project.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <Label htmlFor={`description-${uploadFile.id}`}>Description</Label>
+                        <Textarea
+                          id={`description-${uploadFile.id}`}
+                          value={uploadFile.description}
+                          onChange={(e) => updateFile(uploadFile.id, { description: e.target.value })}
+                          placeholder="Description du document..."
+                          className="mt-1"
+                          rows={2}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -211,7 +278,10 @@ export function DocumentUpload() {
               </Button>
               <Button
                 onClick={handleUpload}
-                disabled={isUploading || files.some((f) => !f.processId)}
+                disabled={isUploading || files.some((f) => 
+                  (f.linkType === 'process' && !f.processId) || 
+                  (f.linkType === 'project' && !f.projectId)
+                )}
                 className="bg-slate-800 hover:bg-slate-700"
               >
                 {isUploading ? "Import en cours..." : `Importer ${files.length} fichier(s)`}

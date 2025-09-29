@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
 
     const form = await request.formData()
     const file = form.get("file") as File | null
+    const linkType = form.get("linkType")?.toString() || "process"
     const processId = form.get("processId")?.toString() || ""
+    const projectId = form.get("projectId")?.toString() || ""
     const description = (form.get("description")?.toString() || "").slice(0, 2000)
     const existingId = form.get("existingId")?.toString() || ""
 
@@ -49,17 +51,23 @@ export async function POST(request: NextRequest) {
         uploaded_by BIGINT,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         process_id BIGINT,
+        project_id BIGINT,
+        link_type VARCHAR(20) DEFAULT 'process',
         url VARCHAR(500)
       )
     `
     await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS project_id BIGINT`
+    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS link_type VARCHAR(20) DEFAULT 'process'`
 
     // Persister en base avec Neon
     console.log("Upload with data:", {
       name: file.name,
       type: file.type || "application/octet-stream",
       size: file.size,
+      linkType,
       processId: processId ? Number(processId) : null,
+      projectId: projectId ? Number(projectId) : null,
       url: blob.url,
       existingId
     })
@@ -83,18 +91,21 @@ export async function POST(request: NextRequest) {
             type = ${file.type || "application/octet-stream"},
             size = ${file.size},
             version = ${nextVersion},
+            link_type = ${linkType},
+            process_id = ${processId ? Number(processId) : null},
+            project_id = ${projectId ? Number(projectId) : null},
             uploaded_at = CURRENT_TIMESTAMP
         WHERE id = ${Number(existingId)}
-        RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
+        RETURNING id, name, description, type, size, version, process_id, project_id, link_type, url, uploaded_by, uploaded_at
       `
 
       return NextResponse.json({ url: blob.url, document: updated[0], success: true, updated: true })
     } else {
       // Création d'un nouveau document
       const result = await sql`
-        INSERT INTO documents (name, description, type, size, version, process_id, url, uploaded_by)
-        VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${blob.url}, ${1})
-        RETURNING id, name, description, type, size, version, process_id, url, uploaded_by, uploaded_at
+        INSERT INTO documents (name, description, type, size, version, process_id, project_id, link_type, url, uploaded_by)
+        VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${projectId ? Number(projectId) : null}, ${linkType}, ${blob.url}, ${1})
+        RETURNING id, name, description, type, size, version, process_id, project_id, link_type, url, uploaded_by, uploaded_at
       `
 
       return NextResponse.json({ url: blob.url, document: result[0], success: true, created: true })
@@ -111,7 +122,8 @@ export async function GET() {
     let dbOk = false
     let dbError: string | null = null
     try {
-      await DatabaseService.query('SELECT 1')
+      const sql = getSql()
+      await sql`SELECT 1`
       dbOk = true
     } catch (err: any) {
       dbOk = false
