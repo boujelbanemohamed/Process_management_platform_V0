@@ -71,7 +71,7 @@ export function Sidebar() {
 
   return (
     <div
-      className={cn("flex flex-col bg-slate-900 text-white transition-all duration-300", collapsed ? "w-16" : "w-64")}
+      className={cn("flex flex-col bg-slate-900 text-white transition-all duration-300 h-screen overflow-hidden", collapsed ? "w-16" : "w-64")}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700">
@@ -87,7 +87,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-6">
+      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
         {/* Main Navigation */}
         <div className="space-y-2">
           {navigation.map((item) => {
@@ -166,7 +166,7 @@ export function Sidebar() {
       {/* User section */}
       <div className="p-4 border-t border-slate-700">
         {!collapsed && user && (
-          <div className="mb-3">
+          <div className="mb-4">
             <p className="text-sm font-medium text-white">{user.name}</p>
             <p className="text-xs text-slate-400">{user.email}</p>
             <p className="text-xs text-slate-400 capitalize">{user.role}</p>

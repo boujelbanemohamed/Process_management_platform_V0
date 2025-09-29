@@ -36,17 +36,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="bg-white border-b border-slate-200 p-4">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="bg-white border-b border-slate-200 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <GlobalSearch />
             </div>
           </div>
         </div>
-        <div className="p-6">
+        <div className="flex-1 overflow-auto p-6">
           <Breadcrumbs />
-          {children}
+          <div className="min-h-full">
+            {children}
+          </div>
         </div>
       </main>
     </div>
