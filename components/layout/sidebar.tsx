@@ -24,6 +24,7 @@ import {
   Tag,
   Circle,
   Briefcase,
+  Palette,
 } from "lucide-react"
 
 const navigation = [
@@ -45,12 +46,17 @@ const adminNavigation = [
   { name: "Journal d'accès", href: "/settings/logs", icon: Activity },
 ]
 
+const modeNavigation = [
+  { name: "Mode", href: "/mode", icon: Palette },
+]
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const user = AuthService.getCurrentUser()
   const isAdmin = user?.role === "admin"
+  const isSuperAdmin = user?.role === "super_admin"
 
   const handleLogout = () => {
     AuthService.logout()
@@ -95,6 +101,33 @@ export function Sidebar() {
             )
           })}
         </div>
+
+        {/* Mode Navigation - Super Admin only */}
+        {isSuperAdmin && (
+          <div className="space-y-2">
+            {!collapsed && (
+              <div className="px-3 py-2">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Configuration</h3>
+              </div>
+            )}
+            {modeNavigation.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.name} href={item.href}>
+                  <div
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      isActive ? "bg-slate-800 text-white" : "text-slate-300 hover:text-white hover:bg-slate-800",
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    {!collapsed && <span className="ml-3">{item.name}</span>}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
 
         {/* Admin Navigation */}
         {isAdmin && (

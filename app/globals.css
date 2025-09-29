@@ -121,3 +121,36 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mode Settings - Accessibilité */
+.high-contrast {
+  --color-primary: #000000;
+  --color-secondary: #333333;
+  --color-accent: #0000ff;
+  filter: contrast(150%);
+}
+
+.reduced-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.font-small {
+  font-size: 0.875rem;
+}
+
+.font-medium {
+  font-size: 1rem;
+}
+
+.font-large {
+  font-size: 1.125rem;
+}
+
+/* Variables CSS personnalisées pour les couleurs */
+:root {
+  --color-primary: #3b82f6;
+  --color-secondary: #64748b;
+  --color-accent: #f59e0b;
+}
