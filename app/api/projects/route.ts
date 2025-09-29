@@ -91,7 +91,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erreur lors de la récupération des projets:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des projets' },
+      { 
+        error: 'Erreur lors de la récupération des projets',
+        details: error instanceof Error ? error.message : 'Erreur inconnue'
+      },
       { status: 500 }
     );
   }
