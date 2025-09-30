@@ -38,36 +38,34 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-4xl">
-      <CardHeader className="text-center pb-10">
-        <CardTitle className="text-4xl font-bold text-slate-800">Connexion</CardTitle>
-        <CardDescription className="text-slate-600 text-lg mt-3">
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl font-bold text-slate-800">Connexion</CardTitle>
+        <CardDescription className="text-slate-600">
           Accédez à votre plateforme de gestion des processus
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-12 pb-12">
-        <form onSubmit={handleSubmit} className="space-y-10">
-          <div className="space-y-4">
-            <Label htmlFor="email" className="text-xl font-medium">Email</Label>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre.email@entreprise.com"
-              className="h-20 text-xl px-6"
               required
             />
           </div>
-          <div className="space-y-4">
-            <Label htmlFor="password" className="text-xl font-medium">Mot de passe</Label>
+          <div className="space-y-2">
+            <Label htmlFor="password">Mot de passe</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="h-20 text-xl px-6"
               required
             />
           </div>
@@ -76,7 +74,7 @@ export function LoginForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Button type="submit" className="w-full h-20 text-xl bg-slate-800 hover:bg-slate-700 font-medium" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-slate-800 hover:bg-slate-700" disabled={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
