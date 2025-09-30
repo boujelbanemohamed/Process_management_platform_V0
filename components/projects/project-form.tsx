@@ -63,6 +63,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
     start_date: '',
     end_date: '',
     budget: 0,
+    tags: [],
     entities: [],
     members: [],
   });
@@ -315,6 +316,22 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags</Label>
+              <Input
+                id="tags"
+                value={formData.tags?.join(', ') || ''}
+                onChange={(e) => {
+                  const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+                  handleFieldChange('tags', tags);
+                }}
+                placeholder="digital, rh, transformation"
+                className={errors.tags ? 'border-red-500' : ''}
+              />
+              <p className="text-sm text-muted-foreground">
+                Séparez les tags par des virgules
+              </p>
+            </div>
           </div>
 
           {errors.start_date && (
@@ -325,6 +342,9 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
           )}
           {errors.budget && (
             <p className="text-sm text-red-600">{errors.budget}</p>
+          )}
+          {errors.tags && (
+            <p className="text-sm text-red-600">{errors.tags}</p>
           )}
         </CardContent>
       </Card>

@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validation
-    const { name, description, status, start_date, end_date, budget, entity_ids, member_ids } = body;
+    const { name, description, status, start_date, end_date, budget, tags, entity_ids, member_ids } = body;
     
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
 
     // Create project
     const projectResult = await sql`
-      INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by)
-      VALUES (${name.trim()}, ${description?.trim() || null}, ${status || 'planning'}, ${start_date || null}, ${end_date || null}, ${budget || null}, ${currentUserId})
+      INSERT INTO projects (name, description, status, start_date, end_date, budget, tags, created_by)
+      VALUES (${name.trim()}, ${description?.trim() || null}, ${status || 'planning'}, ${start_date || null}, ${end_date || null}, ${budget || null}, ${tags || null}, ${currentUserId})
       RETURNING *
     `;
 
@@ -194,7 +194,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, status, start_date, end_date, budget, entity_ids, member_ids } = body;
+    const { name, description, status, start_date, end_date, budget, tags, entity_ids, member_ids } = body;
 
     // Validation
     if (name && name.trim().length === 0) {
@@ -227,6 +227,7 @@ export async function PUT(request: NextRequest) {
           start_date = COALESCE(${start_date || null}, start_date),
           end_date = COALESCE(${end_date || null}, end_date),
           budget = COALESCE(${budget || null}, budget),
+          tags = COALESCE(${tags || null}, tags),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *

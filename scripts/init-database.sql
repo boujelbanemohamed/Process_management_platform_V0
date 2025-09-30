@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS projects (
   start_date DATE,
   end_date DATE,
   budget DECIMAL(15,2),
+  tags TEXT[], -- Array de tags pour faciliter la recherche
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -112,9 +113,9 @@ CREATE TABLE IF NOT EXISTS project_members (
 );
 
 -- Insert sample projects
-INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by) VALUES
-('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', '2024-01-15', '2024-06-30', 50000.00, 1),
-('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', '2024-03-01', '2024-08-31', 75000.00, 2)
+INSERT INTO projects (name, description, status, start_date, end_date, budget, tags, created_by) VALUES
+('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', '2024-01-15', '2024-06-30', 50000.00, ARRAY['digital', 'rh', 'transformation'], 1),
+('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', '2024-03-01', '2024-08-31', 75000.00, ARRAY['ventes', 'optimisation', 'processus'], 2)
 ON CONFLICT DO NOTHING;
 
 -- Link projects to entities

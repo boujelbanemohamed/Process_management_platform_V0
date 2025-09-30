@@ -209,6 +209,24 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
         </Card>
       )}
 
+      {/* Tags */}
+      {project.tags && project.tags.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tags</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {project.tags.map((tag, index) => (
+                <Badge key={index} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Project Info */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar, Users, Building2, Edit, Trash2, Eye, Plus, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
+import { ProjectSearch } from './project-search';
 
 
 const statusColors = {
@@ -26,8 +27,10 @@ const statusLabels = {
 
 export function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProjects();
@@ -38,12 +41,40 @@ export function ProjectList() {
       setLoading(true);
       const data = await ProjectService.getProjects();
       setProjects(data);
+      setFilteredProjects(data);
+      
+      // Extraire tous les tags disponibles
+      const allTags = data.flatMap(project => project.tags || []);
+      const uniqueTags = [...new Set(allTags)];
+      setAvailableTags(uniqueTags);
     } catch (err) {
       console.error('Erreur:', err);
       setError('Erreur lors du chargement des projets');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (query: string, tags: string[]) => {
+    let filtered = projects;
+
+    // Filtrage par texte
+    if (query.trim()) {
+      const searchTerm = query.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.name.toLowerCase().includes(searchTerm) ||
+        (project.description && project.description.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    // Filtrage par tags
+    if (tags.length > 0) {
+      filtered = filtered.filter(project => 
+        project.tags && project.tags.some(tag => tags.includes(tag))
+      );
+    }
+
+    setFilteredProjects(filtered);
   };
 
   const handleDelete = async (id: number) => {
@@ -53,7 +84,9 @@ export function ProjectList() {
 
     try {
       await ProjectService.deleteProject(id.toString());
-      setProjects(projects.filter(project => project.id !== id));
+      const updatedProjects = projects.filter(project => project.id !== id);
+      setProjects(updatedProjects);
+      setFilteredProjects(updatedProjects);
     } catch (err) {
       console.error('Erreur:', err);
       alert('Erreur lors de la suppression du projet');
@@ -140,8 +173,12 @@ export function ProjectList() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project) => (
+    <div className="space-y-6">
+      {/* Composant de recherche */}
+      <ProjectSearch onSearch={handleSearch} availableTags={availableTags} />
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredProjects.map((project) => (
         <Card key={project.id} className="hover:shadow-md transition-shadow">
           <CardHeader>
             <div className="flex items-start justify-between">
@@ -161,6 +198,16 @@ export function ProjectList() {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {project.description}
               </p>
+            )}
+            
+            {project.tags && project.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {project.tags.map((tag, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
             
             <div className="grid grid-cols-2 gap-4 text-sm">

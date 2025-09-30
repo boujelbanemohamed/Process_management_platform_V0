@@ -6,6 +6,7 @@ export interface Project {
   start_date?: string;
   end_date?: string;
   budget?: number;
+  tags?: string[];
   created_by?: number;
   created_by_name?: string;
   created_by_email?: string;
@@ -24,6 +25,7 @@ export interface ProjectFormData {
   start_date: string;
   end_date: string;
   budget: number;
+  tags: string[];
   entity_ids: number[];
   member_ids: number[];
 }
