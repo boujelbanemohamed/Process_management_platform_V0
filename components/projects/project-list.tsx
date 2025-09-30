@@ -188,9 +188,16 @@ export function ProjectList() {
                   Créé par {project.created_by_name}
                 </CardDescription>
               </div>
-              <Badge className={ProjectService.getStatusColor(project.status)}>
-                {ProjectService.getStatusLabel(project.status)}
-              </Badge>
+              <div className="flex flex-col gap-2">
+                <Badge className={ProjectService.getStatusColor(project.status)}>
+                  {ProjectService.getStatusLabel(project.status)}
+                </Badge>
+                {project.project_type && (
+                  <Badge variant="outline" className="text-xs">
+                    {ProjectService.getProjectTypeLabel(project.project_type)}
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

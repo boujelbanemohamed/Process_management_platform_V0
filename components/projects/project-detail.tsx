@@ -179,6 +179,11 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           <Badge className={ProjectService.getStatusColor(project.status)}>
             {ProjectService.getStatusLabel(project.status)}
           </Badge>
+          {project.project_type && (
+            <Badge variant="outline">
+              {ProjectService.getProjectTypeLabel(project.project_type)}
+            </Badge>
+          )}
           <Link href={`/projects/${project.id}/edit`}>
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />

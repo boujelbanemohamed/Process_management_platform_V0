@@ -3,6 +3,7 @@ export interface Project {
   name: string;
   description?: string;
   status: 'planning' | 'active' | 'completed' | 'cancelled';
+  project_type?: 'interne' | 'externe' | 'communautaire';
   start_date?: string;
   end_date?: string;
   budget?: number;
@@ -22,6 +23,7 @@ export interface ProjectFormData {
   name: string;
   description: string;
   status: string;
+  project_type: string;
   start_date: string;
   end_date: string;
   budget: number;
@@ -171,6 +173,15 @@ export class ProjectService {
       minimumFractionDigits: 3,
       maximumFractionDigits: 3,
     }).format(amount);
+  }
+
+  static getProjectTypeLabel(type: string): string {
+    const labels = {
+      'interne': 'Projet Interne',
+      'externe': 'Projet Externe',
+      'communautaire': 'Projet Communautaire'
+    };
+    return labels[type as keyof typeof labels] || type;
   }
 
   static formatDate(dateString: string): string {

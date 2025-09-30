@@ -49,6 +49,12 @@ const statusOptions = [
   { value: 'cancelled', label: 'Annulé' },
 ];
 
+const projectTypeOptions = [
+  { value: 'interne', label: 'Projet Interne' },
+  { value: 'externe', label: 'Projet Externe' },
+  { value: 'communautaire', label: 'Projet Communautaire' },
+];
+
 export function ProjectForm({ projectId }: ProjectFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -60,6 +66,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
     name: '',
     description: '',
     status: 'planning',
+    project_type: 'interne',
     start_date: '',
     end_date: '',
     budget: 0,
@@ -249,6 +256,24 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project_type">Type de projet</Label>
+              <Select
+                value={formData.project_type}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, project_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectTypeOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
