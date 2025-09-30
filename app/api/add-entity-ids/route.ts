@@ -7,7 +7,7 @@ function getSql() {
   return neon(url);
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const sql = getSql();
     
@@ -46,4 +46,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  return GET(request);
 }
