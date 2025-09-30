@@ -78,12 +78,6 @@ export function LoginForm() {
             {isLoading ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
-        <div className="mt-4 text-sm text-slate-600 text-center">
-          <p>Comptes de démonstration :</p>
-          <p>admin@company.com / password (Admin)</p>
-          <p>john@company.com / password (Contributeur)</p>
-          <p>jane@company.com / password (Lecteur)</p>
-        </div>
       </CardContent>
     </Card>
   )
