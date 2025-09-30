@@ -136,11 +136,13 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
         name: formData.name,
         description: formData.description,
         status: formData.status,
+        project_type: formData.project_type || 'interne',
         start_date: formData.start_date,
         end_date: formData.end_date,
         budget: formData.budget,
-        entity_ids: formData.entities.map(e => e.id),
-        member_ids: formData.members.map(m => m.id),
+        tags: formData.tags || [],
+        entity_ids: formData.entities?.map(e => e.id) || [],
+        member_ids: formData.members?.map(m => m.id) || [],
       };
 
       // Validation côté client
