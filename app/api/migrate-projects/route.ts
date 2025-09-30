@@ -24,12 +24,17 @@ export async function POST(request: NextRequest) {
     `;
     console.log('✅ Colonne tags ajoutée');
 
+    await sql`
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS entity_ids BIGINT[]
+    `;
+    console.log('✅ Colonne entity_ids ajoutée');
+
     // Vérifier que les colonnes existent
     const columns = await sql`
       SELECT column_name, data_type, column_default 
       FROM information_schema.columns 
       WHERE table_name = 'projects' 
-      AND column_name IN ('project_type', 'tags')
+      AND column_name IN ('project_type', 'tags', 'entity_ids')
     `;
     
     console.log('📋 Colonnes trouvées:', columns);
