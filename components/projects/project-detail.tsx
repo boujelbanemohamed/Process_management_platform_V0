@@ -216,9 +216,9 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
 
       {/* Tags */}
       {project.tags && project.tags.length > 0 && (
-        <Card>
+        <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle>Tags</CardTitle>
+            <CardTitle className="text-lg">Tags</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
