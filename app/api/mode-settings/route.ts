@@ -27,6 +27,31 @@ export async function GET() {
       return acc;
     }, {} as Record<string, any>);
 
+    // Si aucun paramètre n'est sauvegardé, retourner les paramètres par défaut
+    if (Object.keys(settingsObj).length === 0) {
+      const defaultSettings = {
+        defaultTheme: 'light',
+        autoSwitch: false,
+        lightModeStart: '06:00',
+        darkModeStart: '18:00',
+        customColors: {
+          primary: '#3b82f6',
+          secondary: '#64748b',
+          accent: '#f59e0b'
+        },
+        accessibility: {
+          highContrast: false,
+          reducedMotion: false,
+          fontSize: 'medium'
+        }
+      };
+
+      return NextResponse.json({
+        success: true,
+        settings: defaultSettings
+      });
+    }
+
     return NextResponse.json({
       success: true,
       settings: settingsObj

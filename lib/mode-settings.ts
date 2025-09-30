@@ -16,8 +16,8 @@ export interface ModeSettings {
 }
 
 export const defaultModeSettings: ModeSettings = {
-  defaultTheme: 'system',
-  autoSwitch: true,
+  defaultTheme: 'light',
+  autoSwitch: false,
   lightModeStart: '06:00',
   darkModeStart: '18:00',
   customColors: {

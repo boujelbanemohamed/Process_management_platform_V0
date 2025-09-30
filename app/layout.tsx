@@ -28,7 +28,7 @@ export default function RootLayout({
     <html lang="fr" className="antialiased">
       <body className={`font-sans ${inter.variable}`}>
         <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <Suspense fallback={null}>
               {children}
               <Toaster />
