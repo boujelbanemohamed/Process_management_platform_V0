@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Users, Building2, Save, X, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Building2, Save, X, AlertCircle, Tag } from 'lucide-react';
 import { ProjectService, ProjectFormData, ProjectValidationErrors } from '@/lib/projects';
 
 interface Project {
@@ -62,6 +62,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [errors, setErrors] = useState<ProjectValidationErrors>({});
+  const [newTag, setNewTag] = useState('');
   const [formData, setFormData] = useState<Project>({
     name: '',
     description: '',
@@ -200,6 +201,30 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
     // Clear error for this field when user starts typing
     if (errors[field as keyof ProjectValidationErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !formData.tags?.includes(newTag.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        tags: [...(prev.tags || []), newTag.trim()],
+      }));
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: (prev.tags || []).filter((tag) => tag !== tagToRemove),
+    }));
+  };
+
+  const handleTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
     }
   };
 
@@ -345,19 +370,31 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                value={formData.tags?.join(', ') || ''}
-                onChange={(e) => {
-                  const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-                  handleFieldChange('tags', tags);
-                }}
-                placeholder="digital, rh, transformation"
-                className={errors.tags ? 'border-red-500' : ''}
-              />
-              <p className="text-sm text-muted-foreground">
-                Séparez les tags par des virgules
-              </p>
+              <div className="flex gap-2">
+                <Input
+                  id="tags"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyPress={handleTagKeyPress}
+                  placeholder="Ajouter un tag..."
+                  className={errors.tags ? 'border-red-500' : ''}
+                />
+                <Button type="button" onClick={addTag} variant="outline">
+                  Ajouter
+                </Button>
+              </div>
+              {formData.tags && formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {tag}
+                      <button type="button" onClick={() => removeTag(tag)} className="ml-1 hover:text-red-600">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
