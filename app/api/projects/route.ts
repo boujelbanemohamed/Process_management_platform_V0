@@ -145,21 +145,12 @@ export async function POST(request: NextRequest) {
 
     // Create project
     const projectResult = await sql`
-      INSERT INTO projects (name, description, status, project_type, start_date, end_date, budget, tags, created_by)
-      VALUES (${name.trim()}, ${description?.trim() || null}, ${status || 'planning'}, ${project_type || 'interne'}, ${start_date || null}, ${end_date || null}, ${budget || null}, ${tags || null}, ${currentUserId})
+      INSERT INTO projects (name, description, status, project_type, start_date, end_date, budget, tags, entity_ids, created_by)
+      VALUES (${name.trim()}, ${description?.trim() || null}, ${status || 'planning'}, ${project_type || 'interne'}, ${start_date || null}, ${end_date || null}, ${budget || null}, ${tags || null}, ${entity_ids || null}, ${currentUserId})
       RETURNING *
     `;
 
     const project = projectResult[0];
-
-    // Add entities if provided
-    if (entity_ids && entity_ids.length > 0) {
-      for (const entityId of entity_ids) {
-        await sql`
-          INSERT INTO project_entities (project_id, entity_id) VALUES (${project.id}, ${entityId})
-        `;
-      }
-    }
 
     // Add members if provided
     if (member_ids && member_ids.length > 0) {
@@ -229,6 +220,7 @@ export async function PUT(request: NextRequest) {
           end_date = COALESCE(${end_date || null}, end_date),
           budget = COALESCE(${budget || null}, budget),
           tags = COALESCE(${tags || null}, tags),
+          entity_ids = COALESCE(${entity_ids || null}, entity_ids),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *

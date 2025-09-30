@@ -8,6 +8,7 @@ export interface Project {
   end_date?: string;
   budget?: number;
   tags?: string[];
+  entity_ids?: number[];
   created_by?: number;
   created_by_name?: string;
   created_by_email?: string;
