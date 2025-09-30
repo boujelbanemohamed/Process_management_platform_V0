@@ -177,6 +177,8 @@ export async function PUT(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
+    console.log('🔄 Mise à jour du projet ID:', id);
+    
     if (!id) {
       return NextResponse.json(
         { error: 'ID du projet requis' },
@@ -186,6 +188,8 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const { name, description, status, project_type, start_date, end_date, budget, tags, entity_ids, member_ids } = body;
+    
+    console.log('📝 Données reçues:', { name, status, project_type, tags, entity_ids });
 
     // Validation
     if (name && name.trim().length === 0) {
@@ -210,6 +214,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update project
+    console.log('🔄 Exécution de la requête UPDATE...');
     const projectResult = await sql`
       UPDATE projects 
       SET name = COALESCE(${name?.trim() || null}, name),
@@ -225,6 +230,8 @@ export async function PUT(request: NextRequest) {
       WHERE id = ${id}
       RETURNING *
     `;
+    
+    console.log('✅ Projet mis à jour:', projectResult);
 
     if (projectResult.length === 0) {
       return NextResponse.json(
