@@ -38,14 +38,14 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-slate-800">Connexion</CardTitle>
-        <CardDescription className="text-slate-600">
+    <Card className="w-full max-w-xl">
+      <CardHeader className="text-center pb-6">
+        <CardTitle className="text-3xl font-bold text-slate-800">Connexion</CardTitle>
+        <CardDescription className="text-slate-600 text-base mt-2">
           Accédez à votre plateforme de gestion des processus
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-8 pb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
             <Label htmlFor="email" className="text-base font-medium">Email</Label>
@@ -55,7 +55,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre.email@entreprise.com"
-              className="h-12 text-base"
+              className="h-14 text-base px-4"
               required
             />
           </div>
@@ -67,7 +67,7 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="h-12 text-base"
+              className="h-14 text-base px-4"
               required
             />
           </div>
@@ -76,7 +76,7 @@ export function LoginForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Button type="submit" className="w-full h-12 text-base bg-slate-800 hover:bg-slate-700" disabled={isLoading}>
+          <Button type="submit" className="w-full h-14 text-base bg-slate-800 hover:bg-slate-700" disabled={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
