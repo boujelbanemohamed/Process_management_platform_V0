@@ -38,7 +38,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-3xl">
+    <Card className="w-full max-w-4xl">
       <CardHeader className="text-center pb-10">
         <CardTitle className="text-4xl font-bold text-slate-800">Connexion</CardTitle>
         <CardDescription className="text-slate-600 text-lg mt-3">
