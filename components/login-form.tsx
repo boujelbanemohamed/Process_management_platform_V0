@@ -38,7 +38,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-lg">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-slate-800">Connexion</CardTitle>
         <CardDescription className="text-slate-600">
@@ -46,26 +46,28 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label htmlFor="email" className="text-base font-medium">Email</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre.email@entreprise.com"
+              className="h-12 text-base"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+          <div className="space-y-3">
+            <Label htmlFor="password" className="text-base font-medium">Mot de passe</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              className="h-12 text-base"
               required
             />
           </div>
@@ -74,7 +76,7 @@ export function LoginForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Button type="submit" className="w-full bg-slate-800 hover:bg-slate-700" disabled={isLoading}>
+          <Button type="submit" className="w-full h-12 text-base bg-slate-800 hover:bg-slate-700" disabled={isLoading}>
             {isLoading ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
