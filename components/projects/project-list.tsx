@@ -170,7 +170,6 @@ export function ProjectList() {
         </div>
       </div>
     );
-  }
 
   return (
     <div className="space-y-6">
