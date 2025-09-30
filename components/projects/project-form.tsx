@@ -306,7 +306,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 <Input
                   id="start_date"
                   type="date"
-                  value={formData.start_date}
+                  value={formData.start_date ? formData.start_date.split('T')[0] : ''}
                   onChange={(e) => handleFieldChange('start_date', e.target.value)}
                   className={`pl-10 ${errors.start_date ? 'border-red-500' : ''}`}
                 />
@@ -319,7 +319,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 <Input
                   id="end_date"
                   type="date"
-                  value={formData.end_date}
+                  value={formData.end_date ? formData.end_date.split('T')[0] : ''}
                   onChange={(e) => handleFieldChange('end_date', e.target.value)}
                   className={`pl-10 ${errors.end_date ? 'border-red-500' : ''}`}
                 />

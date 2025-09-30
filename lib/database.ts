@@ -235,9 +235,11 @@ export async function initializeDatabase() {
         name VARCHAR(255) NOT NULL,
         description TEXT,
         status VARCHAR(50) DEFAULT 'planning',
+        project_type VARCHAR(50) DEFAULT 'interne',
         start_date DATE,
         end_date DATE,
         budget DECIMAL(15,2),
+        tags TEXT[],
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -262,11 +264,20 @@ export async function initializeDatabase() {
       )
     `)
 
+    // Add missing columns to existing projects table
+    await DatabaseService.query(`
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(50) DEFAULT 'interne'
+    `)
+    
+    await DatabaseService.query(`
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS tags TEXT[]
+    `)
+
     // Insert sample projects
     await DatabaseService.query(`
-      INSERT INTO projects (name, description, status, start_date, end_date, budget, created_by) VALUES
-      ('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', '2024-01-15', '2024-06-30', 50000.00, 1),
-      ('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', '2024-03-01', '2024-08-31', 75000.00, 2)
+      INSERT INTO projects (name, description, status, project_type, start_date, end_date, budget, tags, created_by) VALUES
+      ('Digitalisation RH', 'Projet de digitalisation des processus RH', 'active', 'interne', '2024-01-15', '2024-06-30', 50000.00, ARRAY['digital', 'rh', 'transformation'], 1),
+      ('Amélioration Ventes', 'Optimisation du processus de vente', 'planning', 'externe', '2024-03-01', '2024-08-31', 75000.00, ARRAY['ventes', 'optimisation', 'processus'], 2)
       ON CONFLICT DO NOTHING
     `)
 
