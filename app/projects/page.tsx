@@ -10,18 +10,20 @@ export default function ProjectsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold">Projets</h1>
+            <Link href="/projects/create">
+              <Button size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau Projet
+              </Button>
+            </Link>
+          </div>
+          <div>
             <p className="text-muted-foreground">
               Gérez vos projets et leurs équipes
             </p>
           </div>
-          <Link href="/projects/create">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouveau Projet
-            </Button>
-          </Link>
         </div>
 
         <Suspense fallback={<div>Chargement des projets...</div>}>
