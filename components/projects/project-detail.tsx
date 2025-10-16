@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye } from 'lucide-react';
+import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -50,37 +50,37 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        setLoading(true);
+        const data = await ProjectService.getProject(projectId);
+        setProject(data);
+      } catch (err) {
+        console.error('Erreur:', err);
+        setError('Erreur lors du chargement du projet');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchDocuments = async () => {
+      try {
+        setLoadingDocuments(true);
+        const response = await fetch(`/api/documents?projectId=${projectId}`);
+        if (!response.ok) throw new Error('Erreur lors du chargement des documents');
+        const data = await response.json();
+        setDocuments(data);
+      } catch (err) {
+        console.error('Erreur chargement documents:', err);
+        setDocuments([]);
+      } finally {
+        setLoadingDocuments(false);
+      }
+    };
+
     fetchProject();
     fetchDocuments();
   }, [projectId]);
-
-  const fetchProject = async () => {
-    try {
-      setLoading(true);
-      const data = await ProjectService.getProject(projectId);
-      setProject(data);
-    } catch (err) {
-      console.error('Erreur:', err);
-      setError('Erreur lors du chargement du projet');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDocuments = async () => {
-    try {
-      setLoadingDocuments(true);
-      const response = await fetch(`/api/documents?projectId=${projectId}`);
-      if (!response.ok) throw new Error('Erreur lors du chargement des documents');
-      const data = await response.json();
-      setDocuments(data);
-    } catch (err) {
-      console.error('Erreur chargement documents:', err);
-      setDocuments([]);
-    } finally {
-      setLoadingDocuments(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) {
@@ -160,11 +160,11 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 printable-area">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <Button variant="outline" size="sm" onClick={() => router.back()} className="no-print">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Button>
@@ -175,7 +175,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 no-print">
           <Badge className={ProjectService.getStatusColor(project.status)}>
             {ProjectService.getStatusLabel(project.status)}
           </Badge>
@@ -184,6 +184,14 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
               {ProjectService.getProjectTypeLabel(project.project_type)}
             </Badge>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer
+          </Button>
           <Link href={`/projects/${project.id}/edit`}>
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />
