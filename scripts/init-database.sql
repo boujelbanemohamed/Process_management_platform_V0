@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS projects (
   end_date DATE,
   budget DECIMAL(15,2),
   tags TEXT[], -- Array de tags pour faciliter la recherche
+  manager_id INTEGER REFERENCES users(id),
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
