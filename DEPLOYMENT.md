@@ -1,117 +1,131 @@
-# Guide de Déploiement - Plateforme de Gestion des Processus
+# Guide de Déploiement sur Red Hat
 
-## Configuration de la Base de Données
+Ce guide explique comment déployer cette application Next.js sur un serveur Red Hat.
 
-### 1. Base de Données Neon PostgreSQL
+## Prérequis
 
-Votre plateforme est configurée pour utiliser Neon PostgreSQL. Voici comment la configurer :
+- Un serveur Red Hat avec un accès root ou sudo.
+- Git installé sur le serveur.
+- Les informations de connexion à votre base de données Neon.
 
-#### Variables d'Environnement Complètes
+## Étape 1 : Préparation du Serveur
 
-\`\`\`env
-# Updated with complete Neon database configuration
-# Recommended for most uses (with connection pooling)
-DATABASE_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require
+Ces commandes doivent être exécutées sur votre serveur Red Hat.
 
-# For uses requiring a connection without pgbouncer
-DATABASE_URL_UNPOOLED=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech/neondb?sslmode=require
+### 1. Installer Node.js et pnpm
 
-# Individual connection parameters
-PGHOST=ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech
-PGHOST_UNPOOLED=ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech
-PGUSER=neondb_owner
-PGDATABASE=neondb
-PGPASSWORD=npg_sc2pgvefN9Cn
+Nous utiliserons `nvm` (Node Version Manager) pour installer Node.js, ce qui facilite la gestion des versions.
 
-# Vercel Postgres Templates compatibility
-POSTGRES_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require
-POSTGRES_URL_NON_POOLING=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech/neondb?sslmode=require
-POSTGRES_USER=neondb_owner
-POSTGRES_HOST=ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech
-POSTGRES_PASSWORD=npg_sc2pgvefN9Cn
-POSTGRES_DATABASE=neondb
-POSTGRES_URL_NO_SSL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb
-POSTGRES_PRISMA_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?connect_timeout=15&sslmode=require
+```bash
+# Mettre à jour les paquets
+sudo yum update -y
 
-# Neon Auth environment variables for Next.js (optional)
-NEXT_PUBLIC_STACK_PROJECT_ID=****************************
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=****************************************
-STACK_SECRET_SERVER_KEY=***********************
+# Installer les outils de compilation
+sudo yum groupinstall "Development Tools" -y
 
-# Authentication
-NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=https://your-domain.com
+# Installer nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 
-# Email service (for user invitations)
-RESEND_API_KEY=your-resend-api-key-here
-\`\`\`
+# Charger nvm
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-#### Connexion Directe via psql
-\`\`\`bash
-# Added direct psql connection command
-psql "postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
-\`\`\`
+# Installer Node.js (LTS)
+nvm install --lts
 
-### 2. Variables d'Environnement Complètes
+# Installer pnpm
+npm install -g pnpm
+```
 
-#### Variables Neon PostgreSQL
-\`\`\`env
-# Recommandé pour la plupart des utilisations (avec pgbouncer)
-DATABASE_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require
+### 2. Installer PM2
 
-# Pour les utilisations nécessitant une connexion sans pgbouncer
-DATABASE_URL_UNPOOLED=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech/neondb?sslmode=require
+PM2 est un gestionnaire de processus pour les applications Node.js qui maintiendra notre application en ligne.
 
-# Paramètres pour construire votre propre chaîne de connexion
-PGHOST=ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech
-PGHOST_UNPOOLED=ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech
-PGUSER=neondb_owner
-PGDATABASE=neondb
-PGPASSWORD=npg_sc2pgvefN9Cn
+```bash
+npm install -g pm2
+```
 
-# Paramètres pour les templates Vercel Postgres
-POSTGRES_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require
-POSTGRES_URL_NON_POOLING=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj.eu-west-2.aws.neon.tech/neondb?sslmode=require
-POSTGRES_USER=neondb_owner
-POSTGRES_HOST=ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech
-POSTGRES_PASSWORD=npg_sc2pgvefN9Cn
-POSTGRES_DATABASE=neondb
-POSTGRES_URL_NO_SSL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb
-POSTGRES_PRISMA_URL=postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?connect_timeout=15&sslmode=require
+### 3. Installer et Configurer Nginx
 
-# Variables d'authentification Neon pour Next.js
-NEXT_PUBLIC_STACK_PROJECT_ID=****************************
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=****************************************
-STACK_SECRET_SERVER_KEY=***********************
+Nginx sera utilisé comme reverse proxy.
 
-# Variables d'authentification NextAuth
-NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=https://your-domain.com
+```bash
+# Installer Nginx
+sudo yum install nginx -y
 
-# Variables pour l'envoi d'emails (optionnel)
-RESEND_API_KEY=your-resend-api-key-here
-\`\`\`
+# Démarrer et activer Nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
 
-#### Configuration Recommandée pour Vercel
+Créez un fichier de configuration pour votre application :
 
-1. **Variables principales** (obligatoires) :
-   - `DATABASE_URL` - Connexion poolée recommandée
-   - `NEXTAUTH_SECRET` - Clé secrète pour l'authentification
-   - `NEXTAUTH_URL` - URL de votre application
+```bash
+sudo nano /etc/nginx/conf.d/yourapp.conf
+```
 
-2. **Variables optionnelles** :
-   - `DATABASE_URL_UNPOOLED` - Pour les connexions directes si nécessaire
-   - `RESEND_API_KEY` - Pour l'envoi d'emails d'invitation
-   - Variables Neon Auth - Si vous utilisez l'authentification Neon
+Collez la configuration suivante, en remplaçant `your_domain.com` par votre nom de domaine ou l'adresse IP de votre serveur :
 
-#### Test de Connexion à la Base de Données
+```nginx
+server {
+    listen 80;
+    server_name your_domain.com;
 
-Pour tester votre connexion en local :
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
 
-\`\`\`bash
-# Connexion directe avec psql
-psql "postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+Testez la configuration de Nginx et redémarrez le service :
 
-# Ou avec la version poolée
-psql "postgresql://neondb_owner:npg_sc2pgvefN9Cn@ep-super-bird-ab3dsgyj-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
-\`\`\`
+```bash
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+## Étape 2 : Déploiement de l'Application
+
+### 1. Cloner le Dépôt
+
+Clonez votre projet sur le serveur.
+
+```bash
+git clone <your-repo-url>
+cd <your-repo-name>
+```
+
+### 2. Configurer les Variables d'Environnement
+
+Créez un fichier `.env.local` à la racine du projet pour stocker vos variables d'environnement.
+
+```bash
+nano .env.local
+```
+
+Ajoutez votre URL de base de données Neon. **Ne commitez jamais ce fichier avec des informations sensibles.**
+
+```
+DATABASE_URL="votre_url_de_base_de_donnees_neon"
+```
+
+### 3. Exécuter les Scripts
+
+Rendez les scripts exécutables et lancez-les.
+
+```bash
+chmod +x init-db.sh deploy.sh
+
+# Exécutez ce script uniquement lors du premier déploiement
+./init-db.sh
+
+# Exécutez ce script pour chaque déploiement
+./deploy.sh
+```
+
+Votre application devrait maintenant être en ligne et accessible via votre nom de domaine ou votre adresse IP.
