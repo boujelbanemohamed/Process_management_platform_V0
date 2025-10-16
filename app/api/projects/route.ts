@@ -26,10 +26,14 @@ export async function GET(request: NextRequest) {
       const projectResult = await sql`
         SELECT 
           p.*,
-          u.name as created_by_name,
-          u.email as created_by_email
+          u_creator.name as created_by_name,
+          u_creator.email as created_by_email,
+          u_manager.id as manager_id,
+          u_manager.name as manager_name,
+          u_manager.email as manager_email
         FROM projects p
-        LEFT JOIN users u ON p.created_by = u.id
+        LEFT JOIN users u_creator ON p.created_by = u_creator.id
+        LEFT JOIN users u_manager ON p.manager_id = u_manager.id
         WHERE p.id = ${id}
       `;
       
@@ -69,9 +73,11 @@ export async function GET(request: NextRequest) {
       const result = await sql`
         SELECT 
           p.*,
-          u.name as created_by_name
+          u.name as created_by_name,
+          m.name as manager_name
         FROM projects p
         LEFT JOIN users u ON p.created_by = u.id
+        LEFT JOIN users m ON p.manager_id = m.id
         ORDER BY p.created_at DESC
       `;
       

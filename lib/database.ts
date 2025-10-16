@@ -241,6 +241,7 @@ export async function initializeDatabase() {
         budget DECIMAL(15,2),
         tags TEXT[],
         entity_ids BIGINT[],
+        manager_id INTEGER REFERENCES users(id),
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -276,6 +277,10 @@ export async function initializeDatabase() {
     
     await DatabaseService.query(`
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS entity_ids BIGINT[]
+    `)
+
+    await DatabaseService.query(`
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES users(id)
     `)
 
     // Insert sample projects

@@ -12,6 +12,8 @@ export interface Project {
   created_by?: number;
   created_by_name?: string;
   created_by_email?: string;
+  manager_id?: number;
+  manager_name?: string;
   created_at?: string;
   updated_at?: string;
   entities?: Array<{ id: number; name: string; type: string }>;
@@ -120,6 +122,23 @@ export class ProjectService {
       const error = await response.json();
       throw new Error(error.error || 'Erreur lors de la suppression du projet');
     }
+  }
+
+  static async setProjectManager(projectId: string, managerId: number): Promise<Project> {
+    const response = await fetch('/api/projects/set-manager', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ projectId, managerId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erreur lors de la définition du responsable du projet');
+    }
+
+    return response.json();
   }
 
   static validateProject(data: Partial<ProjectFormData>): ProjectValidationErrors {
