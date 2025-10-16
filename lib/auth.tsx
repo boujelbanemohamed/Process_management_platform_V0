@@ -9,27 +9,27 @@ export class AuthService {
 
   static async login(email: string, password: string): Promise<User | null> {
     try {
-      console.log("🔐 Tentative de connexion pour:", email)
-      
-      const response = await fetch(`/api/users?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, {
-        method: "GET",
-      })
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await response.json()
-      console.log("📥 Réponse de connexion:", response.status, data)
 
       if (response.ok && data.success) {
         const user = data.user
         this.currentUser = user
         localStorage.setItem("currentUser", JSON.stringify(user))
-        console.log("✅ Connexion réussie:", user)
         return user
       } else {
-        console.error("❌ Échec de connexion:", data.error)
+        // Optionally, you could use a more sophisticated logging service here
         return null
       }
     } catch (error) {
-      console.error("❌ Erreur lors de la connexion:", error)
+      // Optionally, you could use a more sophisticated logging service here
       return null
     }
   }
