@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
             SELECT COUNT(*) as count FROM project_members WHERE project_id = ${project.id}
           `;
           const documentCountResult = await sql`
-            SELECT COUNT(*) as count FROM documents WHERE project_id = ${project.id} AND link_type = 'project'
+            SELECT COUNT(*) as count FROM documents WHERE project_id = ${project.id}
           `;
           
           return {

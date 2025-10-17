@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_by INTEGER REFERENCES users(id),
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   process_id INTEGER REFERENCES processes(id),
+  project_id INTEGER REFERENCES projects(id),
   url VARCHAR(500)
 );
 
