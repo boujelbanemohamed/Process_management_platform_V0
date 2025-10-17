@@ -34,6 +34,7 @@ export function ReportGenerator() {
     }
   }, [])
   const [reportName, setReportName] = useState("")
+  const [activeTab, setActiveTab] = useState("generate")
 
   const handleGenerateReport = async () => {
     if (!dateFrom || !dateTo) return
@@ -148,6 +149,7 @@ Généré le: ${new Date().toLocaleString()}
     setDateTo(savedReport.dateTo)
     setFilters(savedReport.filters)
     setGeneratedReport(savedReport.data)
+    setActiveTab("generate")
   }
 
   const handleDeleteReport = (reportId: number) => {
@@ -163,7 +165,7 @@ Généré le: ${new Date().toLocaleString()}
         <p className="text-slate-600 mt-1">Créez des rapports personnalisés pour analyser vos données</p>
       </div>
 
-      <Tabs defaultValue="generate" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="generate">Générer</TabsTrigger>
           <TabsTrigger value="saved">Rapports Sauvegardés</TabsTrigger>
