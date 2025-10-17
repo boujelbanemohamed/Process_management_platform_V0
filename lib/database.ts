@@ -84,7 +84,6 @@ export async function initializeDatabase() {
         uploaded_by INTEGER REFERENCES users(id),
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         process_id INTEGER REFERENCES processes(id),
-        project_id INTEGER REFERENCES projects(id),
         url VARCHAR(500)
       )
     `)
@@ -242,7 +241,6 @@ export async function initializeDatabase() {
         budget DECIMAL(15,2),
         tags TEXT[],
         entity_ids BIGINT[],
-        manager_id INTEGER REFERENCES users(id),
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -278,14 +276,6 @@ export async function initializeDatabase() {
     
     await DatabaseService.query(`
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS entity_ids BIGINT[]
-    `)
-
-    await DatabaseService.query(`
-      ALTER TABLE projects ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES users(id)
-    `)
-
-    await DatabaseService.query(`
-      ALTER TABLE documents ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id)
     `)
 
     // Insert sample projects

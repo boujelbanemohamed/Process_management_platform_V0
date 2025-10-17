@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AuthService } from "@/lib/auth"
 import { FileText, FolderOpen, Users, TrendingUp, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 interface DashboardData {
   processes: any[]
@@ -256,18 +257,24 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button className="w-full justify-start" variant="outline" size="sm">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Créer un processus
-                </Button>
-                <Button className="w-full justify-start" variant="outline" size="sm">
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Importer des documents
-                </Button>
-                <Button className="w-full justify-start" variant="outline" size="sm">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Générer un rapport
-                </Button>
+                <Link href="/processes/create" passHref>
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Créer un processus
+                  </Button>
+                </Link>
+                <Link href="/documents/upload" passHref>
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Importer des documents
+                  </Button>
+                </Link>
+                <Link href="/reports" passHref>
+                  <Button className="w-full justify-start" variant="outline" size="sm">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Générer un rapport
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

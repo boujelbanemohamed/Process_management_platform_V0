@@ -26,14 +26,10 @@ export async function GET(request: NextRequest) {
       const projectResult = await sql`
         SELECT 
           p.*,
-          u_creator.name as created_by_name,
-          u_creator.email as created_by_email,
-          u_manager.id as manager_id,
-          u_manager.name as manager_name,
-          u_manager.email as manager_email
+          u.name as created_by_name,
+          u.email as created_by_email
         FROM projects p
-        LEFT JOIN users u_creator ON p.created_by = u_creator.id
-        LEFT JOIN users u_manager ON p.manager_id = u_manager.id
+        LEFT JOIN users u ON p.created_by = u.id
         WHERE p.id = ${id}
       `;
       
@@ -73,11 +69,9 @@ export async function GET(request: NextRequest) {
       const result = await sql`
         SELECT 
           p.*,
-          u.name as created_by_name,
-          m.name as manager_name
+          u.name as created_by_name
         FROM projects p
         LEFT JOIN users u ON p.created_by = u.id
-        LEFT JOIN users m ON p.manager_id = m.id
         ORDER BY p.created_at DESC
       `;
       
@@ -91,7 +85,7 @@ export async function GET(request: NextRequest) {
             SELECT COUNT(*) as count FROM project_members WHERE project_id = ${project.id}
           `;
           const documentCountResult = await sql`
-            SELECT COUNT(*) as count FROM documents WHERE project_id = ${project.id}
+            SELECT COUNT(*) as count FROM documents WHERE project_id = ${project.id} AND link_type = 'project'
           `;
           
           return {
