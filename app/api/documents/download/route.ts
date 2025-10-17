@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
+
+export const dynamic = 'force-dynamic';
 import { neon } from "@neondatabase/serverless"
 
 function getSql() {
