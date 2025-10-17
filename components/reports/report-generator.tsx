@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AnalyticsService } from "@/lib/analytics"
-import { Download, FileText, Filter, Save, Calendar, BarChart3 } from "lucide-react"
+import { Download, FileText, Filter, Save, Calendar, BarChart3, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -26,6 +26,13 @@ export function ReportGenerator() {
     includeDetails: true,
   })
   const [savedReports, setSavedReports] = useState<any[]>([])
+
+  useEffect(() => {
+    const loadedReports = localStorage.getItem("savedReports")
+    if (loadedReports) {
+      setSavedReports(JSON.parse(loadedReports))
+    }
+  }, [])
   const [reportName, setReportName] = useState("")
 
   const handleGenerateReport = async () => {
@@ -128,7 +135,9 @@ Généré le: ${new Date().toLocaleString()}
       data: generatedReport,
     }
 
-    setSavedReports([...savedReports, savedReport])
+    const updatedReports = [...savedReports, savedReport]
+    setSavedReports(updatedReports)
+    localStorage.setItem("savedReports", JSON.stringify(updatedReports))
     setReportName("")
     alert("Rapport sauvegardé avec succès!")
   }
@@ -139,6 +148,12 @@ Généré le: ${new Date().toLocaleString()}
     setDateTo(savedReport.dateTo)
     setFilters(savedReport.filters)
     setGeneratedReport(savedReport.data)
+  }
+
+  const handleDeleteReport = (reportId: number) => {
+    const updatedReports = savedReports.filter((report) => report.id !== reportId)
+    setSavedReports(updatedReports)
+    localStorage.setItem("savedReports", JSON.stringify(updatedReports))
   }
 
   return (
@@ -492,9 +507,18 @@ Généré le: ${new Date().toLocaleString()}
                           {report.type} • {new Date(report.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <Button onClick={() => handleLoadSavedReport(report)} variant="outline">
-                        Charger
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button onClick={() => handleLoadSavedReport(report)} variant="outline">
+                          Charger
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteReport(report.id)}
+                          variant="destructive"
+                          size="icon"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
