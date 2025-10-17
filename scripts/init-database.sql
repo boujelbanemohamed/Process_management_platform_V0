@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_by INTEGER REFERENCES users(id),
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   process_id INTEGER REFERENCES processes(id),
-  project_id INTEGER REFERENCES projects(id),
   url VARCHAR(500)
 );
 
@@ -95,7 +94,6 @@ CREATE TABLE IF NOT EXISTS projects (
   end_date DATE,
   budget DECIMAL(15,2),
   tags TEXT[], -- Array de tags pour faciliter la recherche
-  manager_id INTEGER REFERENCES users(id),
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

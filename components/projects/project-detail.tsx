@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye, UserCheck, Printer } from 'lucide-react';
+import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -50,47 +50,35 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        setLoading(true);
-        const data = await ProjectService.getProject(projectId);
-        setProject(data);
-      } catch (err) {
-        console.error('Erreur:', err);
-        setError('Erreur lors du chargement du projet');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchDocuments = async () => {
-      try {
-        setLoadingDocuments(true);
-        const response = await fetch(`/api/documents?projectId=${projectId}`);
-        if (!response.ok) throw new Error('Erreur lors du chargement des documents');
-        const data = await response.json();
-        setDocuments(data);
-      } catch (err) {
-        console.error('Erreur chargement documents:', err);
-        setDocuments([]);
-      } finally {
-        setLoadingDocuments(false);
-      }
-    };
-
     fetchProject();
     fetchDocuments();
   }, [projectId]);
 
-  const handleSetManager = async (managerId: number) => {
+  const fetchProject = async () => {
     try {
-      await ProjectService.setProjectManager(projectId, managerId);
-      // Re-fetch project data to get all details including members
-      const updatedProjectData = await ProjectService.getProject(projectId);
-      setProject(updatedProjectData);
+      setLoading(true);
+      const data = await ProjectService.getProject(projectId);
+      setProject(data);
     } catch (err) {
       console.error('Erreur:', err);
-      alert('Erreur lors de la définition du responsable du projet');
+      setError('Erreur lors du chargement du projet');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDocuments = async () => {
+    try {
+      setLoadingDocuments(true);
+      const response = await fetch(`/api/documents?projectId=${projectId}`);
+      if (!response.ok) throw new Error('Erreur lors du chargement des documents');
+      const data = await response.json();
+      setDocuments(data);
+    } catch (err) {
+      console.error('Erreur chargement documents:', err);
+      setDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
     }
   };
 
@@ -151,7 +139,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">{error}</p>
         <div className="flex gap-4 justify-center">
-          <Button onClick={() => window.location.reload()}>Réessayer</Button>
+          <Button onClick={fetchProject}>Réessayer</Button>
           <Button variant="outline" onClick={() => router.push('/projects')}>
             Retour aux projets
           </Button>
@@ -196,14 +184,6 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
               {ProjectService.getProjectTypeLabel(project.project_type)}
             </Badge>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.print()}
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimer
-          </Button>
           <Link href={`/projects/${project.id}/edit`}>
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />
@@ -276,15 +256,6 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
                 <span className="font-medium">{formatCurrency(project.budget)}</span>
               </div>
             )}
-            {project.manager_name && (
-              <div className="flex justify-between items-center pt-2 mt-2 border-t">
-                <span className="text-muted-foreground flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
-                  Responsable:
-                </span>
-                <span className="font-medium">{project.manager_name}</span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -304,18 +275,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
                       <p className="font-medium">{member.name}</p>
                       <p className="text-sm text-muted-foreground">{member.email}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{member.role}</Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleSetManager(member.id)}
-                        disabled={project.manager_id === member.id}
-                      >
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        {project.manager_id === member.id ? 'Responsable' : 'Définir comme responsable'}
-                      </Button>
-                    </div>
+                    <Badge variant="outline">{member.role}</Badge>
                   </div>
                 ))}
               </div>
