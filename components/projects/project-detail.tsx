@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye, UserCheck } from 'lucide-react';
+import { Calendar, Users, Building2, Edit, Trash2, ArrowLeft, FileText, Download, Eye, UserCheck, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { ProjectService, Project } from '@/lib/projects';
 
@@ -50,24 +50,26 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProjectAndDocuments = async () => {
+    const fetchProject = async () => {
       try {
         setLoading(true);
-        const projectData = await ProjectService.getProject(projectId);
-        setProject(projectData);
+        const data = await ProjectService.getProject(projectId);
+        setProject(data);
       } catch (err) {
         console.error('Erreur:', err);
         setError('Erreur lors du chargement du projet');
       } finally {
         setLoading(false);
       }
+    };
 
+    const fetchDocuments = async () => {
       try {
         setLoadingDocuments(true);
         const response = await fetch(`/api/documents?projectId=${projectId}`);
         if (!response.ok) throw new Error('Erreur lors du chargement des documents');
-        const documentsData = await response.json();
-        setDocuments(documentsData);
+        const data = await response.json();
+        setDocuments(data);
       } catch (err) {
         console.error('Erreur chargement documents:', err);
         setDocuments([]);
@@ -76,13 +78,16 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       }
     };
 
-    fetchProjectAndDocuments();
+    fetchProject();
+    fetchDocuments();
   }, [projectId]);
 
   const handleSetManager = async (managerId: number) => {
     try {
-      const updatedProject = await ProjectService.setProjectManager(projectId, managerId);
-      setProject(updatedProject);
+      await ProjectService.setProjectManager(projectId, managerId);
+      // Re-fetch project data to get all details including members
+      const updatedProjectData = await ProjectService.getProject(projectId);
+      setProject(updatedProjectData);
     } catch (err) {
       console.error('Erreur:', err);
       alert('Erreur lors de la définition du responsable du projet');
@@ -191,6 +196,14 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
               {ProjectService.getProjectTypeLabel(project.project_type)}
             </Badge>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer
+          </Button>
           <Link href={`/projects/${project.id}/edit`}>
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />
