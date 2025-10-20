@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Building2, Users, FolderOpen, Edit, ArrowLeft, FileText } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Building2, Users, FolderOpen, Edit, ArrowLeft, FileText, UserCheck } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
+import toast from "react-hot-toast"
 
 interface Entity {
   id: string
@@ -18,6 +20,8 @@ interface Entity {
   updated_at: string
   user_count?: number
   users?: User[]
+  manager_id?: string
+  manager_name?: string
 }
 
 interface User {
@@ -64,34 +68,53 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
   const { user } = useAuth()
   const [entity, setEntity] = useState<Entity | null>(null)
   const [processes, setProcesses] = useState<Process[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [selectedManager, setSelectedManager] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [entityLoading, setEntityLoading] = useState(true)
   
   const canEdit = user && (user.role === "admin" || user.role === "contributor")
 
-  // Charger l'entité depuis l'API
+  const loadEntity = async () => {
+    try {
+      console.log("🔄 Chargement de l'entité:", entityId)
+      const response = await fetch(`/api/entities?id=${entityId}`)
+      if (response.ok) {
+        const data = await response.json()
+        console.log("📥 Entité chargée:", data)
+        setEntity(data)
+        setSelectedManager(data.manager_id || "")
+      } else {
+        console.error("❌ Erreur chargement entité:", response.status)
+        setEntity(null)
+      }
+    } catch (error) {
+      console.error("❌ Erreur chargement entité:", error)
+      setEntity(null)
+    } finally {
+      setEntityLoading(false)
+    }
+  }
+
+  // Charger l'entité et les utilisateurs depuis l'API
   useEffect(() => {
-    const loadEntity = async () => {
+    loadEntity()
+
+    const loadUsers = async () => {
       try {
-        console.log("🔄 Chargement de l'entité:", entityId)
-        const response = await fetch(`/api/entities?id=${entityId}`)
+        const response = await fetch("/api/users")
         if (response.ok) {
           const data = await response.json()
-          console.log("📥 Entité chargée:", data)
-          setEntity(data)
+          setUsers(Array.isArray(data) ? data : [])
         } else {
-          console.error("❌ Erreur chargement entité:", response.status)
-          setEntity(null)
+          setUsers([])
         }
       } catch (error) {
-        console.error("❌ Erreur chargement entité:", error)
-        setEntity(null)
-      } finally {
-        setEntityLoading(false)
+        console.error("Erreur chargement utilisateurs:", error)
+        setUsers([])
       }
     }
-
-    loadEntity()
+    loadUsers()
   }, [entityId])
 
   // Charger les processus depuis l'API
@@ -282,6 +305,36 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
                 <p className="text-sm text-muted-foreground">{typeLabels[entity.type as keyof typeof typeLabels] || entity.type || "N/A"}</p>
               </div>
               <div>
+                <p className="text-sm font-medium">Responsable</p>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <UserCheck className="h-4 w-4" />
+                  <span className={!entity.manager_name ? 'italic' : ''}>
+                    {entity.manager_name || 'N/A'}
+                  </span>
+                </p>
+              </div>
+              {canEdit && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Assigner un responsable</p>
+                  <div className="flex gap-2">
+                    <Select value={selectedManager} onValueChange={setSelectedManager}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir un utilisateur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Aucun</SelectItem>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleAssignManager} disabled={selectedManager === (entity.manager_id || "")}>
+                      Assigner
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div>
                 <p className="text-sm font-medium">Identifiant</p>
                 <p className="text-sm text-muted-foreground font-mono">{entity.id || "N/A"}</p>
               </div>
@@ -320,4 +373,23 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
       </div>
     </div>
   )
+
+  async function handleAssignManager() {
+    if (selectedManager === (entity?.manager_id || "")) return;
+
+    const promise = fetch(`/api/entities?id=${entityId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ managerId: selectedManager || null }),
+    });
+
+    toast.promise(promise, {
+      loading: 'Assignation en cours...',
+      success: () => {
+        loadEntity(); // Re-fetch entity data to update UI
+        return 'Responsable assigné avec succès !';
+      },
+      error: 'Erreur lors de l\'assignation.',
+    });
+  }
 }
