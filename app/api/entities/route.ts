@@ -126,7 +126,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, name, type, description, parentId, managerId } = body
     
-    // Utiliser l'ID de l'URL en priorité, sinon celui du body
     const entityId = idFromUrl || id
     
     if (!entityId) {
@@ -136,20 +135,28 @@ export async function PUT(request: NextRequest) {
     const sql = getSql()
     await ensureEntitiesTable(sql)
     
-    // Construire la requête de mise à jour dynamiquement
-    const updateFields: any = {}
-    if (name !== undefined) updateFields.name = name
-    if (type !== undefined) updateFields.type = type
-    if (description !== undefined) updateFields.description = description
-    if (parentId !== undefined) updateFields.parent_id = parentId ? Number(parentId) : null
-    if (managerId !== undefined) updateFields.manager_id = managerId ? Number(managerId) : null
+    const updates: any = {}
+    if (name !== undefined) updates.name = name
+    if (type !== undefined) updates.type = type
+    if (description !== undefined) updates.description = description
+    if (parentId !== undefined) updates.parent_id = parentId ? Number(parentId) : null
+    if (managerId !== undefined) updates.manager_id = managerId ? Number(managerId) : null
 
-    // Ajouter la mise à jour de updated_at
-    updateFields.updated_at = new Date()
+    if (Object.keys(updates).length === 0) {
+      const [entity] = await sql`SELECT * FROM entities WHERE id = ${Number(entityId)}`
+      if (!entity) {
+        return NextResponse.json({ error: "Entity not found" }, { status: 404 })
+      }
+      return NextResponse.json(entity)
+    }
+
+    updates.updated_at = new Date()
+
+    const setClauses = Object.keys(updates).map(key => sql`${sql.ident(key)} = ${updates[key]}`)
 
     const result = await sql`
       UPDATE entities 
-      SET ${sql(updateFields)}
+      SET ${sql.join(setClauses, sql`, `)}
       WHERE id = ${Number(entityId)}
       RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
     `
