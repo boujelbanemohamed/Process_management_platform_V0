@@ -547,6 +547,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("activity")
                     setFilters({ ...filters, includeCharts: true, includeDetails: true })
+                    setActiveTab("generate")
                   }}
                 >
                   <Calendar className="h-6 w-6 text-blue-600" />
@@ -568,6 +569,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("processes")
                     setFilters({ ...filters, status: "active", includeCharts: true })
+                    setActiveTab("generate")
                   }}
                 >
                   <BarChart3 className="h-6 w-6 text-green-600" />
@@ -587,6 +589,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("documents")
                     setFilters({ ...filters, includeCharts: true, includeDetails: true })
+                    setActiveTab("generate")
                   }}
                 >
                   <FileText className="h-6 w-6 text-purple-600" />
@@ -606,6 +609,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("activity")
                     setFilters({ ...filters, includeCharts: false, includeDetails: true })
+                    setActiveTab("generate")
                   }}
                 >
                   <Calendar className="h-6 w-6 text-orange-600" />
@@ -625,6 +629,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("processes")
                     setFilters({ ...filters, category: "RH", includeCharts: true })
+                    setActiveTab("generate")
                   }}
                 >
                   <BarChart3 className="h-6 w-6 text-red-600" />
@@ -644,6 +649,7 @@ Généré le: ${new Date().toLocaleString()}
                     setDateTo(today.toISOString().split("T")[0])
                     setReportType("documents")
                     setFilters({ ...filters, includeCharts: true, includeDetails: false })
+                    setActiveTab("generate")
                   }}
                 >
                   <FileText className="h-6 w-6 text-teal-600" />
