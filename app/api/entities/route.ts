@@ -36,11 +36,15 @@ export async function GET(request: NextRequest) {
     await ensureEntitiesTable(sql)
     
     if (id) {
-      // Récupérer une entité spécifique avec les utilisateurs affiliés
+      // Récupérer une entité spécifique avec les utilisateurs affiliés et le responsable
       const entity = await sql`
-        SELECT e.*, 
-               COALESCE(user_count.user_count, 0) as user_count
+        SELECT
+          e.*,
+          COALESCE(user_count.user_count, 0) as user_count,
+          m.id as manager_id,
+          m.name as manager_name
         FROM entities e
+        LEFT JOIN users m ON e.manager_id = m.id
         LEFT JOIN (
           SELECT entity_id, COUNT(*) as user_count
           FROM users
@@ -67,11 +71,14 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json(entityData)
     } else {
-      // Récupérer toutes les entités avec le nombre d'utilisateurs
+      // Récupérer toutes les entités avec le nombre d'utilisateurs et le nom du responsable
       const entities = await sql`
-        SELECT e.*, 
-               COALESCE(user_count.user_count, 0) as user_count
+        SELECT
+          e.*,
+          COALESCE(user_count.user_count, 0) as user_count,
+          COALESCE(m.name, 'N/A') as manager_name
         FROM entities e
+        LEFT JOIN users m ON e.manager_id = m.id
         LEFT JOIN (
           SELECT entity_id, COUNT(*) as user_count
           FROM users
@@ -117,16 +124,10 @@ export async function PUT(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const idFromUrl = searchParams.get('id')
     const body = await request.json()
-    const { id, name, type, description, parentId } = body
-    
-    console.log('PUT request - URL:', request.url)
-    console.log('PUT request - idFromUrl:', idFromUrl)
-    console.log('PUT request - body:', body)
+    const { id, name, type, description, parentId, managerId } = body
     
     // Utiliser l'ID de l'URL en priorité, sinon celui du body
     const entityId = idFromUrl || id
-    
-    console.log('PUT request - entityId:', entityId)
     
     if (!entityId) {
       return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
@@ -135,40 +136,31 @@ export async function PUT(request: NextRequest) {
     const sql = getSql()
     await ensureEntitiesTable(sql)
     
-    console.log('PUT request - About to update entity:', {
-      entityId: Number(entityId),
-      name: name || '',
-      type: type || 'department',
-      description: description || null,
-      parentId: parentId ? Number(parentId) : null
-    })
-    
+    // Construire la requête de mise à jour dynamiquement
+    const updateFields: any = {}
+    if (name !== undefined) updateFields.name = name
+    if (type !== undefined) updateFields.type = type
+    if (description !== undefined) updateFields.description = description
+    if (parentId !== undefined) updateFields.parent_id = parentId ? Number(parentId) : null
+    if (managerId !== undefined) updateFields.manager_id = managerId ? Number(managerId) : null
+
+    // Ajouter la mise à jour de updated_at
+    updateFields.updated_at = new Date()
+
     const result = await sql`
       UPDATE entities 
-      SET name = ${name || ''}, 
-          type = ${type || 'department'}, 
-          description = ${description || null},
-          parent_id = ${parentId ? Number(parentId) : null},
-          updated_at = CURRENT_TIMESTAMP
+      SET ${sql(updateFields)}
       WHERE id = ${Number(entityId)}
-      RETURNING id, name, type, description, parent_id, created_at, updated_at
+      RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
     `
-    
-    console.log('PUT request - Update result:', result)
     
     if (result.length === 0) {
       return NextResponse.json({ error: "Entity not found" }, { status: 404 })
     }
     
     return NextResponse.json(result[0])
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating entity:", error)
-    console.error("Error details:", {
-      message: error?.message,
-      code: error?.code,
-      detail: error?.detail,
-      stack: error?.stack
-    })
     return NextResponse.json({ 
       error: "Failed to update entity", 
       details: error?.message || String(error) 

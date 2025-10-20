@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, Users, FolderOpen, Eye, Edit, Trash2, Search } from "lucide-react"
+import { Building2, Users, FolderOpen, Eye, Edit, Trash2, Search, UserCheck } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
 
@@ -37,6 +37,7 @@ interface Entity {
   created_at: string
   updated_at: string
   user_count?: number
+  manager_name?: string
 }
 
 export function EntityList() {
@@ -171,20 +172,26 @@ export function EntityList() {
                         {typeLabels[entity.type as keyof typeof typeLabels] || entity.type}
                       </Badge>
                     </div>
-                    <CardDescription className="line-clamp-2">
+                    <CardDescription className="line-clamp-2 h-10">
                       {entity.description || "Aucune description"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm text-slate-600">
-                          {entity.user_count || 0} utilisateur{(entity.user_count || 0) > 1 ? 's' : ''}
-                        </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>{entity.user_count || 0} utilisateur{(entity.user_count || 0) > 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="h-4 w-4" />
+                          <span className={entity.manager_name === 'N/A' ? 'italic' : ''}>
+                            {entity.manager_name || 'N/A'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="text-sm text-muted-foreground pt-2">
                           Créé le {new Date(entity.created_at).toLocaleDateString('fr-FR')}
                         </div>
                         <div className="flex gap-2">
