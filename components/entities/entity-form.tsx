@@ -21,6 +21,7 @@ interface Entity {
   type: string
   description: string
   parent_id?: string
+  manager_id?: string;
   created_at: string
   updated_at: string
   user_count?: number
@@ -46,6 +47,7 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
     name: "",
     description: "",
     type: "department",
+    managerId: "",
   })
 
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
@@ -80,6 +82,7 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
               name: data.name || "",
               description: data.description || "",
               type: data.type || "department",
+              managerId: data.manager_id || "",
             })
             setSelectedUsers(data.users ? data.users.map((u: User) => String(u.id)) : [])
           }
@@ -258,7 +261,7 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Nom *</Label>
                 <Input
@@ -283,6 +286,21 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
                   <option value="project">Projet</option>
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="manager">Responsable</Label>
+              <select
+                id="manager"
+                value={formData.managerId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, managerId: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                <option value="">Aucun</option>
+                {allUsers.map(user => (
+                  <option key={user.id} value={user.id}>{user.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
