@@ -128,8 +128,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const entityId = searchParams.get('id')
-    const { managerId } = await request.json()
+    const idFromUrl = searchParams.get('id')
+    const body = await request.json()
+    const { id, name, type, description, parentId, managerId } = body
+
+    const entityId = idFromUrl || id
     
     if (!entityId) {
       return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
@@ -138,26 +141,47 @@ export async function PUT(request: NextRequest) {
     const sql = getSql()
     await ensureEntitiesTable(sql)
 
-    console.log(`[API] Assigning manager for entity ${entityId}. Manager ID: ${managerId}`);
+    const updates: any = {}
+    if (name !== undefined) updates.name = name
+    if (type !== undefined) updates.type = type
+    if (description !== undefined) updates.description = description
+    if (parentId !== undefined) updates.parent_id = parentId ? Number(parentId) : null
+    // Correction : Mapper managerId (camelCase) de la requête vers manager_id (snake_case) pour la BDD
+    if (managerId !== undefined) updates.manager_id = managerId ? Number(managerId) : null
 
-    const result = await sql`
+    if (Object.keys(updates).length === 0) {
+      const [entity] = await sql`SELECT * FROM entities WHERE id = ${Number(entityId)}`
+      if (!entity) {
+        return NextResponse.json({ error: "Entity not found" }, { status: 404 })
+      }
+      return NextResponse.json(entity)
+    }
+
+    updates.updated_at = new Date()
+
+    // Manually build the SET clause to avoid issues with sql.ident
+    const updateEntries = Object.entries(updates);
+    const setClause = updateEntries
+      .map(([key], i) => `"${key}" = $${i + 2}`)
+      .join(", ");
+    const values = updateEntries.map(([, value]) => value);
+
+    const query = `
       UPDATE entities
-      SET
-        manager_id = ${managerId ? Number(managerId) : null},
-        updated_at = NOW()
-      WHERE id = ${Number(entityId)}
+      SET ${setClause}
+      WHERE id = $1
       RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
-    `
+    `;
     
-    if (result.length === 0) {
-      console.error(`[API] Entity not found during manager assignment: ${entityId}`);
+    const result = await sql.query(query, [Number(entityId), ...values]);
+
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Entity not found" }, { status: 404 })
     }
     
-    console.log(`[API] Successfully assigned manager for entity ${entityId}`);
-    return NextResponse.json(result[0])
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
-    console.error("Error updating entity manager:", error)
+    console.error("Error updating entity:", error)
     return NextResponse.json({ 
       error: "Failed to update entity", 
       details: error?.message || String(error) 
