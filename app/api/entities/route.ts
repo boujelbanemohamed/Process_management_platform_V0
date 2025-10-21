@@ -25,6 +25,12 @@ async function ensureEntitiesTable(sql: any) {
     ALTER TABLE entities
     ADD COLUMN IF NOT EXISTS parent_id BIGINT
   `
+
+  // Ajouter la colonne manager_id si elle n'existe pas
+  await sql`
+    ALTER TABLE entities
+    ADD COLUMN IF NOT EXISTS manager_id BIGINT
+  `
 }
 
 export async function GET(request: NextRequest) {
