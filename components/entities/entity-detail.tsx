@@ -322,7 +322,7 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
                         <SelectValue placeholder="Choisir un utilisateur" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Aucun</SelectItem>
+                        <SelectItem value="null">Aucun</SelectItem>
                         {users.map(u => (
                           <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                         ))}
@@ -377,10 +377,11 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
   async function handleAssignManager() {
     if (selectedManager === (entity?.manager_id || "")) return;
 
+    const managerIdToSend = selectedManager === "null" ? null : selectedManager
     const promise = fetch(`/api/entities?id=${entityId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ managerId: selectedManager || null }),
+      body: JSON.stringify({ managerId: managerIdToSend }),
     });
 
     toast.promise(promise, {
