@@ -152,20 +152,27 @@ export async function PUT(request: NextRequest) {
 
     updates.updated_at = new Date()
 
-    const setClauses = Object.keys(updates).map(key => sql`${sql.ident(key)} = ${updates[key]}`)
+    // Manually build the SET clause to avoid issues with sql.ident
+    const updateEntries = Object.entries(updates);
+    const setClause = updateEntries
+      .map(([key], i) => `"${key}" = $${i + 2}`)
+      .join(", ");
+    const values = updateEntries.map(([, value]) => value);
 
-    const result = await sql`
-      UPDATE entities 
-      SET ${sql.join(setClauses, sql`, `)}
-      WHERE id = ${Number(entityId)}
+    const query = `
+      UPDATE entities
+      SET ${setClause}
+      WHERE id = $1
       RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
-    `
+    `;
     
-    if (result.length === 0) {
+    const result = await sql.query(query, [Number(entityId), ...values]);
+
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: "Entity not found" }, { status: 404 })
     }
     
-    return NextResponse.json(result[0])
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
     console.error("Error updating entity:", error)
     return NextResponse.json({ 
