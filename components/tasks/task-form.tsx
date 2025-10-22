@@ -91,13 +91,9 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
         setAssignableUsers([]);
         setAssignableEntities([]);
       }
-
-      if (!isEditMode || (task && selectedProjectId !== task.project_id.toString())) {
-        form.setValue("assignee", "");
-      }
     }
     fetchProjectDetails();
-  }, [selectedProjectId, form, isEditMode, task]);
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (isEditMode && task && projects.length > 0) {
@@ -120,7 +116,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     const submissionData = {
       ...data,
       projectId: parseInt(data.projectId, 10),
-      assigneeId: parseInt(assigneeId, 10), // Correction ici aussi
+      assigneeId: parseInt(assigneeId, 10),
       assigneeType
     };
 
@@ -152,12 +148,30 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     }
   }
 
+  const handleProjectChange = (projectId: string) => {
+    form.setValue("projectId", projectId);
+    form.setValue("assignee", "");
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
-        <FormField control={form.control} name="projectId" render={({ field }) => (
-          <FormItem><FormLabel>Projet</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un projet" /></SelectTrigger></FormControl><SelectContent>{projects.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="projectId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Projet</FormLabel>
+              <Select onValueChange={handleProjectChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner un projet" /></SelectTrigger>
+                </FormControl>
+                <SelectContent>{projects.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField control={form.control} name="name" render={({ field }) => (
           <FormItem><FormLabel>Nom de la tâche</FormLabel><FormControl><Input placeholder="Ex: Rédiger le rapport" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
