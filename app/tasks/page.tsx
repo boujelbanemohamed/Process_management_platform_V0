@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskForm } from '@/components/tasks/task-form';
@@ -37,8 +37,8 @@ function TaskCard({ task, onEdit, onDelete, onView }: { task: Task; onEdit: (tas
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => onView(task)}><Eye className="mr-2 h-4 w-4" />Voir</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(task)}>Modifier</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600">Supprimer</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(task)}><Pencil className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
