@@ -10,22 +10,22 @@ function getSql() {
 async function ensureEntitiesTable(sql: any) {
   await sql`
     CREATE TABLE IF NOT EXISTS entities (
-      id BIGSERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       type VARCHAR(50) NOT NULL DEFAULT 'department',
       description TEXT,
-      parent_id BIGINT,
+      parent_id INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `
   await sql`
     ALTER TABLE entities
-    ADD COLUMN IF NOT EXISTS parent_id BIGINT
+    ADD COLUMN IF NOT EXISTS parent_id INTEGER
   `
   await sql`
     ALTER TABLE entities
-    ADD COLUMN IF NOT EXISTS manager_id BIGINT
+    ADD COLUMN IF NOT EXISTS manager_id INTEGER
   `
 }
 
@@ -43,18 +43,18 @@ export async function GET(request: NextRequest) {
         LEFT JOIN (
           SELECT entity_id, COUNT(*) as user_count FROM users WHERE entity_id IS NOT NULL GROUP BY entity_id
         ) user_count ON e.id = user_count.entity_id
-        WHERE e.id = ${Number(id)}
+        WHERE e.id = ${parseInt(id, 10)}
       `
       if (entity.length === 0) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
       const entityData = entity[0]
       const users = await sql`
-        SELECT id, name, email, role, avatar FROM users WHERE entity_id = ${Number(id)} ORDER BY name
+        SELECT id, name, email, role, avatar FROM users WHERE entity_id = ${parseInt(id, 10)} ORDER BY name
       `
       entityData.users = users
       return NextResponse.json(entityData)
     } else {
       const entities = await sql`
-        SELECT e.*, COALESCE(user_count.user_count, 0) as user_count, COALESCE(m.name, 'N/A') as manager_name
+        SELECT e.*, COALESCE(user_count.user_count, 0) as user_count, COALESce(m.name, 'N/A') as manager_name
         FROM entities e
         LEFT JOIN users m ON e.manager_id = m.id
         LEFT JOIN (
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     await ensureEntitiesTable(sql)
     const result = await sql`
       INSERT INTO entities (name, type, description, parent_id)
-      VALUES (${name}, ${type}, ${description || null}, ${parentId ? Number(parentId) : null})
+      VALUES (${name}, ${type}, ${description || null}, ${parentId ? parseInt(parentId, 10) : null})
       RETURNING id, name, type, description, parent_id, created_at, updated_at
     `
     return NextResponse.json(result[0], { status: 201 })
@@ -103,10 +103,10 @@ export async function PUT(request: NextRequest) {
     if (name !== undefined) updates.name = name
     if (type !== undefined) updates.type = type
     if (description !== undefined) updates.description = description
-    if (parentId !== undefined) updates.parent_id = parentId ? Number(parentId) : null
-    if (managerId !== undefined) updates.manager_id = managerId ? Number(managerId) : null
+    if (parentId !== undefined) updates.parent_id = parentId ? parseInt(parentId, 10) : null
+    if (managerId !== undefined) updates.manager_id = managerId ? parseInt(managerId, 10) : null
     if (Object.keys(updates).length === 0) {
-      const [entity] = await sql`SELECT * FROM entities WHERE id = ${Number(entityId)}`
+      const [entity] = await sql`SELECT * FROM entities WHERE id = ${parseInt(entityId, 10)}`
       if (!entity) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
       return NextResponse.json(entity)
     }
@@ -118,7 +118,7 @@ export async function PUT(request: NextRequest) {
       UPDATE entities SET ${setClause} WHERE id = $1
       RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
     `;
-    const result = await sql.query(query, [Number(entityId), ...values]);
+    const result = await sql.query(query, [parseInt(entityId, 10), ...values]);
     if (result.rows.length === 0) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
     return NextResponse.json(result.rows[0])
   } catch (error: any) {
@@ -134,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
     const sql = getSql()
     await ensureEntitiesTable(sql)
-    const result = await sql`DELETE FROM entities WHERE id = ${Number(id)} RETURNING id, name`
+    const result = await sql`DELETE FROM entities WHERE id = ${parseInt(id, 10)} RETURNING id, name`
     if (result.length === 0) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
     return NextResponse.json({ success: true, deletedEntity: result[0] })
   } catch (error) {
