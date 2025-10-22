@@ -90,37 +90,40 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const entityId = searchParams.get('id');
-    const { managerId } = await request.json();
+    const { searchParams } = new URL(request.url)
+    const idFromUrl = searchParams.get('id')
+    const body = await request.json()
+    const { id, name, type, description, parentId, managerId } = body
+    const entityId = idFromUrl || id
+    if (!entityId) return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
+    const sql = getSql()
+    await ensureEntitiesTable(sql)
 
-    if (!entityId) {
-      return NextResponse.json({ error: "Entity ID is required" }, { status: 400 });
+    const updates: any = {}
+    if (name !== undefined) updates.name = name
+    if (type !== undefined) updates.type = type
+    if (description !== undefined) updates.description = description
+    if (parentId !== undefined) updates.parent_id = parentId ? Number(parentId) : null
+    if (managerId !== undefined) updates.manager_id = managerId ? Number(managerId) : null
+    if (Object.keys(updates).length === 0) {
+      const [entity] = await sql`SELECT * FROM entities WHERE id = ${Number(entityId)}`
+      if (!entity) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
+      return NextResponse.json(entity)
     }
-
-    const sql = getSql();
-    await ensureEntitiesTable(sql);
-
-    const result = await sql`
-      UPDATE entities
-      SET
-        manager_id = ${managerId ? Number(managerId) : null},
-        updated_at = NOW()
-      WHERE id = ${Number(entityId)}
-      RETURNING *
+    updates.updated_at = new Date()
+    const updateEntries = Object.entries(updates);
+    const setClause = updateEntries.map(([key], i) => `"${key}" = $${i + 2}`).join(", ");
+    const values = updateEntries.map(([, value]) => value);
+    const query = `
+      UPDATE entities SET ${setClause} WHERE id = $1
+      RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
     `;
-
-    if (result.length === 0) {
-      return NextResponse.json({ error: "Entity not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(result[0]);
+    const result = await sql.query(query, [Number(entityId), ...values]);
+    if (result.rows.length === 0) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
+    return NextResponse.json(result.rows[0])
   } catch (error: any) {
-    console.error("Error updating entity manager:", error);
-    return NextResponse.json({
-      error: "Failed to update entity manager",
-      details: error?.message || String(error),
-    }, { status: 500 });
+    console.error("Error updating entity:", error)
+    return NextResponse.json({ error: "Failed to update entity", details: error?.message || String(error) }, { status: 500 })
   }
 }
 
