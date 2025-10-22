@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(entityData)
     } else {
       const entities = await sql`
-        SELECT e.*, COALESCE(user_count.user_count, 0) as user_count, COALESce(m.name, 'N/A') as manager_name
+        SELECT e.*, COALESCE(user_count.user_count, 0) as user_count, COALESCE(m.name, 'N/A') as manager_name
         FROM entities e
         LEFT JOIN users m ON e.manager_id = m.id
         LEFT JOIN (
@@ -90,40 +90,50 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const idFromUrl = searchParams.get('id')
-    const body = await request.json()
-    const { id, name, type, description, parentId, managerId } = body
-    const entityId = idFromUrl || id
-    if (!entityId) return NextResponse.json({ error: "Entity ID is required" }, { status: 400 })
-    const sql = getSql()
-    await ensureEntitiesTable(sql)
+    const { searchParams } = new URL(request.url);
+    const entityId = searchParams.get('id');
+    const body = await request.json();
 
-    const updates: any = {}
-    if (name !== undefined) updates.name = name
-    if (type !== undefined) updates.type = type
-    if (description !== undefined) updates.description = description
-    if (parentId !== undefined) updates.parent_id = parentId ? parseInt(parentId, 10) : null
-    if (managerId !== undefined) updates.manager_id = managerId ? parseInt(managerId, 10) : null
-    if (Object.keys(updates).length === 0) {
-      const [entity] = await sql`SELECT * FROM entities WHERE id = ${parseInt(entityId, 10)}`
-      if (!entity) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
-      return NextResponse.json(entity)
+    if (!entityId) {
+      return NextResponse.json({ error: "Entity ID is required" }, { status: 400 });
     }
-    updates.updated_at = new Date()
-    const updateEntries = Object.entries(updates);
-    const setClause = updateEntries.map(([key], i) => `"${key}" = $${i + 2}`).join(", ");
-    const values = updateEntries.map(([, value]) => value);
-    const query = `
-      UPDATE entities SET ${setClause} WHERE id = $1
-      RETURNING id, name, type, description, parent_id, manager_id, created_at, updated_at
+
+    // Fournir des valeurs par défaut pour tous les champs potentiels
+    const {
+      name = null,
+      type = null,
+      description = null,
+      parentId = null,
+      managerId = null
+    } = body;
+
+    const sql = getSql();
+    await ensureEntitiesTable(sql);
+
+    const result = await sql`
+      UPDATE entities
+      SET
+        name = COALESCE(${name}, name),
+        type = COALESCE(${type}, type),
+        description = COALESCE(${description}, description),
+        parent_id = CASE WHEN ${parentId} IS NOT NULL THEN ${parseInt(parentId, 10)} ELSE parent_id END,
+        manager_id = CASE WHEN ${body.hasOwnProperty('managerId')} THEN ${managerId ? parseInt(managerId, 10) : null} ELSE manager_id END,
+        updated_at = NOW()
+      WHERE id = ${parseInt(entityId, 10)}
+      RETURNING *
     `;
-    const result = await sql.query(query, [parseInt(entityId, 10), ...values]);
-    if (result.rows.length === 0) return NextResponse.json({ error: "Entity not found" }, { status: 404 })
-    return NextResponse.json(result.rows[0])
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Entity not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result[0]);
   } catch (error: any) {
-    console.error("Error updating entity:", error)
-    return NextResponse.json({ error: "Failed to update entity", details: error?.message || String(error) }, { status: 500 })
+    console.error("Error updating entity:", error);
+    return NextResponse.json({
+      error: "Failed to update entity",
+      details: error?.message || String(error),
+    }, { status: 500 });
   }
 }
 
