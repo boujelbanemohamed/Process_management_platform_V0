@@ -25,8 +25,53 @@ const STATUSES: Task['status'][] = ['À faire', 'En cours', 'En attente de valid
 const PRIORITIES = ["Basse", "Moyenne", "Haute", "Critique"];
 
 // --- Composants ---
-function TaskCard({ task, onEdit, onDelete }: { task: Task; onEdit: (task: Task) => void; onDelete: (task: Task) => void; }) { /* ... inchangé ... */ }
-function KanbanColumn({ title, tasks, onEdit, onDelete }: { title: string; tasks: Task[]; onEdit: (task: Task) => void; onDelete: (task: Task) => void; }) { /* ... inchangé ... */ }
+function TaskCard({ task, onEdit, onDelete }: { task: Task; onEdit: (task: Task) => void; onDelete: (task: Task) => void; }) {
+  return (
+    <div className="bg-white p-3 mb-4 rounded-lg shadow-sm border border-gray-200 group text-sm">
+      <div className="flex justify-between items-start mb-2">
+        <span className="font-bold text-gray-800 pr-2">{task.task_number}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onEdit(task)}>Modifier</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600">Supprimer</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <p className="font-semibold text-gray-900 mb-1">{task.name}</p>
+      <p className="text-xs text-gray-500 mb-2">{task.project_name}</p>
+
+      <div className="text-xs text-gray-600 space-y-1 mb-3">
+        <p>Début: {format(new Date(task.start_date), 'dd MMM yyyy', { locale: fr })}</p>
+        <p>Fin: {format(new Date(task.end_date), 'dd MMM yyyy', { locale: fr })}</p>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-gray-600">{task.assignee_name}</span>
+        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+            task.priority === 'Critique' ? 'bg-red-100 text-red-800' :
+            task.priority === 'Haute' ? 'bg-orange-100 text-orange-800' :
+            task.priority === 'Moyenne' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-blue-100 text-blue-800'
+        }`}>
+          {task.priority}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function KanbanColumn({ title, tasks, onEdit, onDelete }: { title: string; tasks: Task[]; onEdit: (task: Task) => void; onDelete: (task: Task) => void; }) {
+  return (
+    <div className="bg-gray-100 p-4 rounded-lg flex-1">
+      <h2 className="font-semibold text-lg mb-4 text-gray-700">{title}</h2>
+      <div>{tasks.map(task => <TaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />)}</div>
+    </div>
+  );
+}
 
 export default function TasksPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -85,18 +130,56 @@ export default function TasksPage() {
     });
   }, [allTasks, searchTerm, projectFilter, priorityFilter, statusFilter, assigneeFilter, startDateFilter, endDateFilter]);
 
-  // ... (toutes les fonctions de handler, inchangées)
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsFormModalOpen(true);
+  };
 
-  if (loading) { /* ... */ }
-  if (error) { /* ... */ }
+  const handleDelete = (task: Task) => {
+    setDeletingTask(task);
+    setIsDeleteAlertOpen(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!deletingTask) return;
+    try {
+      await fetch(`/api/tasks?id=${deletingTask.id}`, { method: 'DELETE' });
+      toast.success("Tâche supprimée !");
+      fetchAllData();
+    } catch {
+      toast.error("Échec de la suppression.");
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setDeletingTask(null);
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setIsFormModalOpen(false);
+    setEditingTask(null);
+    fetchAllData();
+  };
+
+  const openCreateModal = () => {
+    setEditingTask(null);
+    setIsFormModalOpen(true);
+  }
+
+  if (loading) {
+      return <DashboardLayout><div>Chargement...</div></DashboardLayout>;
+  }
+  if (error) {
+      return <DashboardLayout><div className="text-red-500">Erreur: {error}</div></DashboardLayout>;
+  }
+
+  const getTasksByStatus = (status: Task['status']) => filteredTasks.filter(task => task.status === status);
   const uniqueProjects = [...new Map(allTasks.map(task => [task.project_id, {id: task.project_id, name: task.project_name}])).values()];
 
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Tâches</h1>
-        <Button onClick={() => { setEditingTask(null); setIsFormModalOpen(true); }}>Ajouter une tâche</Button>
+        <Button onClick={openCreateModal}>Ajouter une tâche</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -118,10 +201,19 @@ export default function TasksPage() {
       </div>
 
       <div className="flex gap-6">
-        {STATUSES.map(status => <KanbanColumn key={status} title={status} tasks={filteredTasks.filter(task => task.status === status)} onEdit={(task) => { setEditingTask(task); setIsFormModalOpen(true); }} onDelete={(task) => { setDeletingTask(task); setIsDeleteAlertOpen(true); }} />)}
+        {STATUSES.map(status => <KanbanColumn key={status} title={status} tasks={getTasksByStatus(status)} onEdit={handleEdit} onDelete={handleDelete} />)}
       </div>
 
-      {/* ... (Modales Dialog et AlertDialog, inchangées) ... */}
+      <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
+        <DialogContent><DialogHeader><DialogTitle>{editingTask ? 'Modifier la tâche' : 'Créer une tâche'}</DialogTitle></DialogHeader><TaskForm onSuccess={handleFormSuccess} task={editingTask} /></DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
