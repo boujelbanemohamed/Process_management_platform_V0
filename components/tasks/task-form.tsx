@@ -59,7 +59,6 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
 
   const selectedProjectId = form.watch("projectId");
 
-  // Charger la liste de tous les projets au montage du composant
   useEffect(() => {
     async function fetchProjects() {
       const response = await fetch('/api/projects');
@@ -69,19 +68,16 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     fetchProjects();
   }, []);
 
-  // Charger les membres et entités quand un projet est sélectionné
   useEffect(() => {
     async function fetchProjectDetails() {
       if (selectedProjectId) {
         setIsLoadingMembers(true);
         setAssignableUsers([]);
         setAssignableEntities([]);
-
         try {
           const response = await fetch(`/api/projects?id=${selectedProjectId}`);
           if (!response.ok) throw new Error("Projet non trouvé");
           const projectDetails: ProjectDetails = await response.json();
-
           setAssignableUsers(projectDetails.members || []);
           setAssignableEntities(projectDetails.entities || []);
         } catch (error) {
@@ -97,14 +93,13 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     fetchProjectDetails();
   }, [selectedProjectId]);
 
-  // Pré-remplir le formulaire UNIQUEMENT en mode édition
   useEffect(() => {
     if (isEditMode && task && projects.length > 0) {
       form.reset({
+        ...form.getValues(),
         projectId: task.project_id.toString(),
         name: task.name,
         description: task.description,
-        assignee: `${task.assignee_type}_${task.assignee_id}`,
         startDate: new Date(task.start_date).toISOString().split('T')[0],
         endDate: new Date(task.end_date).toISOString().split('T')[0],
         priority: task.priority,
@@ -113,6 +108,13 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
       });
     }
   }, [task, projects, form, isEditMode]);
+
+  useEffect(() => {
+    if (isEditMode && task && (assignableUsers.length > 0 || assignableEntities.length > 0)) {
+        const assigneeValue = `${task.assignee_type}_${task.assignee_id}`;
+        form.setValue("assignee", assigneeValue);
+    }
+  }, [assignableUsers, assignableEntities, isEditMode, task, form]);
 
   async function onSubmit(data: TaskFormValues) {
     const [assigneeType, assigneeId] = data.assignee.split('_');
@@ -163,8 +165,6 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
               <Select
                 onValueChange={(value) => {
                   field.onChange(value);
-                  // Vider le champ 'assignee' uniquement lors d'un changement manuel,
-                  // et seulement si on n'est pas en train de charger la valeur initiale en mode édition.
                   if (!isEditMode || value !== task?.project_id.toString()) {
                     form.setValue("assignee", "");
                   }
