@@ -13,9 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// --- Types et Constantes Partagées ---
+// --- Types et Constantes ---
 type Task = { id: number; [key: string]: any; };
-type Project = { id: string; name: string; members: any[]; entities: any[] };
+type Project = { id: string; name: string; };
+type ProjectDetails = { id: string; name: string; members: any[]; entities: any[] };
 type User = { id: string; name: string };
 type Entity = { id: string; name: string };
 
@@ -47,6 +48,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const [assignableEntities, setAssignableEntities] = useState<Entity[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const isEditMode = !!task;
 
@@ -67,20 +69,35 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
   }, []);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      const selectedProject = projects.find(p => p.id.toString() === selectedProjectId);
-      if (selectedProject) {
-        setAssignableUsers(selectedProject.members || []);
-        setAssignableEntities(selectedProject.entities || []);
+    async function fetchProjectDetails() {
+      if (selectedProjectId) {
+        setIsLoadingMembers(true);
+        setAssignableUsers([]);
+        setAssignableEntities([]);
+
+        try {
+          const response = await fetch(`/api/projects?id=${selectedProjectId}`);
+          if (!response.ok) throw new Error("Projet non trouvé");
+          const projectDetails: ProjectDetails = await response.json();
+
+          setAssignableUsers(projectDetails.members || []);
+          setAssignableEntities(projectDetails.entities || []);
+        } catch (error) {
+          toast.error("Impossible de charger les membres du projet.");
+        } finally {
+          setIsLoadingMembers(false);
+        }
+      } else {
+        setAssignableUsers([]);
+        setAssignableEntities([]);
       }
-    } else {
-      setAssignableUsers([]);
-      setAssignableEntities([]);
+
+      if (!isEditMode || (task && selectedProjectId !== task.project_id.toString())) {
+        form.setValue("assignee", "");
+      }
     }
-    if (!isEditMode || (task && selectedProjectId !== task.project_id.toString())) {
-      form.setValue("assignee", "");
-    }
-  }, [selectedProjectId, projects, form, isEditMode, task]);
+    fetchProjectDetails();
+  }, [selectedProjectId, form, isEditMode, task]);
 
   useEffect(() => {
     if (isEditMode && task && projects.length > 0) {
@@ -100,7 +117,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
 
   async function onSubmit(data: TaskFormValues) {
     const [assigneeType, assigneeId] = data.assignee.split('_');
-    const submissionData = { ...data, assigneeId, assigneeType };
+    const submissionData = { ...data, assigneeId: parseInt(assigneeId, 10), assigneeType };
 
     try {
       const response = await fetch(
@@ -135,7 +152,21 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
           <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description détaillée de la tâche..." {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="assignee" render={({ field }) => (
-          <FormItem><FormLabel>Assigné à</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedProjectId}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner un membre du projet" /></SelectTrigger></FormControl><SelectContent><SelectGroup><SelectLabel>Utilisateurs</SelectLabel>{assignableUsers.map(u => <SelectItem key={`user_${u.id}`} value={`user_${u.id}`}>{u.name}</SelectItem>)}</SelectGroup><SelectGroup><SelectLabel>Entités</SelectLabel>{assignableEntities.map(e => <SelectItem key={`entity_${e.id}`} value={`entity_${e.id}`}>{e.name}</SelectItem>)}</SelectGroup></SelectContent></Select><FormMessage /></FormItem>
+          <FormItem>
+            <FormLabel>Assigné à</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedProjectId || isLoadingMembers}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingMembers ? "Chargement..." : "Sélectionner un membre du projet"} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectGroup><SelectLabel>Utilisateurs</SelectLabel>{assignableUsers.map(u => <SelectItem key={`user_${u.id}`} value={`user_${u.id}`}>{u.name}</SelectItem>)}</SelectGroup>
+                <SelectGroup><SelectLabel>Entités</SelectLabel>{assignableEntities.map(e => <SelectItem key={`entity_${e.id}`} value={`entity_${e.id}`}>{e.name}</SelectItem>)}</SelectGroup>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
         )} />
         <div className="grid grid-cols-2 gap-4">
           <FormField control={form.control} name="startDate" render={({ field }) => (
