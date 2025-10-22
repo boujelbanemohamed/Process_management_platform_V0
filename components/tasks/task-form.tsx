@@ -119,8 +119,8 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     const [assigneeType, assigneeId] = data.assignee.split('_');
     const submissionData = {
       ...data,
-      projectId: parseInt(data.projectId, 10), // Correction ici
-      assigneeId: parseInt(assigneeId, 10),
+      projectId: parseInt(data.projectId, 10),
+      assigneeId: parseInt(assigneeId, 10), // Correction ici aussi
       assigneeType
     };
 
