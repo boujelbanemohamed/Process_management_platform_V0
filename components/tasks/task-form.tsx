@@ -117,7 +117,12 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
 
   async function onSubmit(data: TaskFormValues) {
     const [assigneeType, assigneeId] = data.assignee.split('_');
-    const submissionData = { ...data, assigneeId: parseInt(assigneeId, 10), assigneeType };
+    const submissionData = {
+      ...data,
+      projectId: parseInt(data.projectId, 10), // Correction ici
+      assigneeId: parseInt(assigneeId, 10),
+      assigneeType
+    };
 
     try {
       const response = await fetch(
