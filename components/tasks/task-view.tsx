@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 // --- Types et Constantes ---
 type TaskStatus = 'À faire' | 'En cours' | 'En attente de validation' | 'Terminé';
@@ -12,6 +13,7 @@ const STATUSES: TaskStatus[] = ['À faire', 'En cours', 'En attente de validatio
 
 type Task = {
   id: number;
+  project_id: number; // Ajout pour le lien
   task_number: string;
   name: string;
   description?: string;
@@ -59,7 +61,7 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
   return (
     <div className="space-y-4">
       <div className="pb-2 border-b">
-        <p className="text-sm text-gray-500">{task.project_name}</p>
+        <Link href={`/projects/${task.project_id}`} className="text-sm text-blue-600 hover:underline cursor-pointer">{task.project_name}</Link>
         <h2 className="text-2xl font-bold">{task.name}</h2>
         <p className="text-lg text-gray-700 font-mono">{task.task_number}</p>
       </div>
@@ -78,7 +80,12 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
         </div>
         <DetailItem label="Priorité" value={task.priority} />
         <DetailItem label="Assigné à" value={task.assignee_name} />
-        <DetailItem label="Projet" value={task.project_name} />
+        <div>
+          <p className="text-sm font-semibold text-gray-500">Projet</p>
+          <Link href={`/projects/${task.project_id}`} className="text-gray-800 hover:underline text-blue-600">
+            {task.project_name}
+          </Link>
+        </div>
         <DetailItem label="Date de début" value={format(new Date(task.start_date), 'dd MMMM yyyy', { locale: fr })} />
         <DetailItem label="Date de fin" value={format(new Date(task.end_date), 'dd MMMM yyyy', { locale: fr })} />
       </div>
