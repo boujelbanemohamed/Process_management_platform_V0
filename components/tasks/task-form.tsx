@@ -59,6 +59,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
 
   const selectedProjectId = form.watch("projectId");
 
+  // Charger la liste de tous les projets au montage du composant
   useEffect(() => {
     async function fetchProjects() {
       const response = await fetch('/api/projects');
@@ -68,6 +69,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     fetchProjects();
   }, []);
 
+  // Charger les membres et entités quand un projet est sélectionné
   useEffect(() => {
     async function fetchProjectDetails() {
       if (selectedProjectId) {
@@ -95,6 +97,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     fetchProjectDetails();
   }, [selectedProjectId]);
 
+  // Pré-remplir le formulaire UNIQUEMENT en mode édition
   useEffect(() => {
     if (isEditMode && task && projects.length > 0) {
       form.reset({
@@ -148,11 +151,6 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
     }
   }
 
-  const handleProjectChange = (projectId: string) => {
-    form.setValue("projectId", projectId);
-    form.setValue("assignee", "");
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
@@ -162,7 +160,17 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Projet</FormLabel>
-              <Select onValueChange={handleProjectChange} value={field.value}>
+              <Select
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  // Vider le champ 'assignee' uniquement lors d'un changement manuel,
+                  // et seulement si on n'est pas en train de charger la valeur initiale en mode édition.
+                  if (!isEditMode || value !== task?.project_id.toString()) {
+                    form.setValue("assignee", "");
+                  }
+                }}
+                value={field.value}
+              >
                 <FormControl>
                   <SelectTrigger><SelectValue placeholder="Sélectionner un projet" /></SelectTrigger>
                 </FormControl>
@@ -207,7 +215,6 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
             <FormItem><FormLabel>Priorité</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="status" render={({ field }) => (
-            // JULES: Correction de la syntaxe - suppression de la double balise FormMessage
             <FormItem><FormLabel>Statut</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="remarks" render={({ field }) => (
