@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +19,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 // --- Types ---
 type Task = {
   id: number;
+  task_number: string;
   name: string;
   status: 'À faire' | 'En cours' | 'En attente de validation' | 'Terminé';
   project_id: number;
@@ -25,8 +28,9 @@ type Task = {
   assignee_type: string;
   assignee_name: string;
   priority: string;
+  start_date: string;
   end_date: string;
-  [key: string]: any; // Pour l'accès dynamique
+  [key: string]: any;
 };
 const STATUSES: Task['status'][] = ['À faire', 'En cours', 'En attente de validation', 'Terminé'];
 const PRIORITIES = ["Basse", "Moyenne", "Haute", "Critique"];
@@ -34,9 +38,9 @@ const PRIORITIES = ["Basse", "Moyenne", "Haute", "Critique"];
 // --- Composants Enfants ---
 function TaskCard({ task, onEdit, onDelete }: { task: Task; onEdit: (task: Task) => void; onDelete: (task: Task) => void; }) {
   return (
-    <div className="bg-white p-4 mb-4 rounded-lg shadow-sm border border-gray-200 group">
-      <div className="flex justify-between items-start">
-        <h3 className="font-semibold text-gray-800 pr-2">{task.name}</h3>
+    <div className="bg-white p-3 mb-4 rounded-lg shadow-sm border border-gray-200 group text-sm">
+      <div className="flex justify-between items-start mb-2">
+        <span className="font-bold text-gray-800 pr-2">{task.task_number}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -47,10 +51,25 @@ function TaskCard({ task, onEdit, onDelete }: { task: Task; onEdit: (task: Task)
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <p className="text-sm text-gray-500">{task.project_name}</p>
-      <div className="mt-2 flex justify-between items-center">
+
+      <p className="font-semibold text-gray-900 mb-1">{task.name}</p>
+      <p className="text-xs text-gray-500 mb-2">{task.project_name}</p>
+
+      <div className="text-xs text-gray-600 space-y-1 mb-3">
+        <p>Début: {format(new Date(task.start_date), 'dd MMM yyyy', { locale: fr })}</p>
+        <p>Fin: {format(new Date(task.end_date), 'dd MMM yyyy', { locale: fr })}</p>
+      </div>
+
+      <div className="flex justify-between items-center">
         <span className="text-xs text-gray-600">{task.assignee_name}</span>
-        <span className={`px-2 py-1 text-xs rounded-full ${ task.priority === 'Critique' ? 'bg-red-100 text-red-800' : task.priority === 'Haute' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>{task.priority}</span>
+        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+            task.priority === 'Critique' ? 'bg-red-100 text-red-800' :
+            task.priority === 'Haute' ? 'bg-orange-100 text-orange-800' :
+            task.priority === 'Moyenne' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-blue-100 text-blue-800'
+        }`}>
+          {task.priority}
+        </span>
       </div>
     </div>
   );
@@ -140,8 +159,12 @@ export default function TasksPage() {
     setIsFormModalOpen(true);
   }
 
-  if (loading) return <div>Chargement...</div>;
-  if (error) return <div className="text-red-500">Erreur: {error}</div>;
+  if (loading) {
+      return <DashboardLayout><div>Chargement...</div></DashboardLayout>;
+  }
+  if (error) {
+      return <DashboardLayout><div className="text-red-500">Erreur: {error}</div></DashboardLayout>;
+  }
 
   const getTasksByStatus = (status: Task['status']) => filteredTasks.filter(task => task.status === status);
   const uniqueProjects = [...new Map(allTasks.map(task => [task.project_id, {id: task.project_id, name: task.project_name}])).values()];
