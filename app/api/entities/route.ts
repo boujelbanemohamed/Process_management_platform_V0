@@ -92,20 +92,11 @@ export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const entityId = searchParams.get('id');
-    const body = await request.json();
+    const { managerId } = await request.json();
 
     if (!entityId) {
       return NextResponse.json({ error: "Entity ID is required" }, { status: 400 });
     }
-
-    // Fournir des valeurs par défaut pour tous les champs potentiels
-    const {
-      name = null,
-      type = null,
-      description = null,
-      parentId = null,
-      managerId = null
-    } = body;
 
     const sql = getSql();
     await ensureEntitiesTable(sql);
@@ -113,11 +104,7 @@ export async function PUT(request: NextRequest) {
     const result = await sql`
       UPDATE entities
       SET
-        name = COALESCE(${name}, name),
-        type = COALESCE(${type}, type),
-        description = COALESCE(${description}, description),
-        parent_id = CASE WHEN ${parentId} IS NOT NULL THEN ${parseInt(parentId, 10)} ELSE parent_id END,
-        manager_id = CASE WHEN ${body.hasOwnProperty('managerId')} THEN ${managerId ? parseInt(managerId, 10) : null} ELSE manager_id END,
+        manager_id = ${managerId ? parseInt(managerId, 10) : null},
         updated_at = NOW()
       WHERE id = ${parseInt(entityId, 10)}
       RETURNING *
@@ -129,9 +116,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(result[0]);
   } catch (error: any) {
-    console.error("Error updating entity:", error);
+    console.error("Error updating entity manager:", error);
     return NextResponse.json({
-      error: "Failed to update entity",
+      error: "Failed to update entity manager",
       details: error?.message || String(error),
     }, { status: 500 });
   }
