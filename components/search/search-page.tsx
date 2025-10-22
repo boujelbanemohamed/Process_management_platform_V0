@@ -37,6 +37,7 @@ export function SearchPage() {
   const handleSearch = async () => {
     if (!query.trim()) return
 
+    setSuggestions([])
     setIsSearching(true)
     try {
       const searchResults = await SearchService.search(query, {
