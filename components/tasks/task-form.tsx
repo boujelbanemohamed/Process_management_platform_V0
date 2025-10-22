@@ -140,7 +140,15 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
       toast.success(`Tâche ${isEditMode ? 'mise à jour' : 'créée'} !`);
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Échec de la ${isEditMode ? 'mise à jour' : 'création'}.`);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+
+      if (errorMessage.includes("date de fin")) {
+        form.setError("endDate", { type: "manual", message: errorMessage });
+      } else if (errorMessage.includes("assigné")) {
+        form.setError("assignee", { type: "manual", message: errorMessage });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   }
 
