@@ -12,6 +12,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskForm } from '@/components/tasks/task-form';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 
 // --- Types ---
 type Task = {
@@ -146,7 +147,7 @@ export default function TasksPage() {
   const uniqueProjects = [...new Map(allTasks.map(task => [task.project_id, {id: task.project_id, name: task.project_name}])).values()];
 
   return (
-    <div>
+    <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Tâches</h1>
         <Button onClick={openCreateModal}>Ajouter une tâche</Button>
@@ -172,6 +173,6 @@ export default function TasksPage() {
           <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DashboardLayout>
   );
 }
