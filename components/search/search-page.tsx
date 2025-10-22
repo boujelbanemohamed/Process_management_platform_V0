@@ -15,9 +15,11 @@ import Link from "next/link"
 export function SearchPage() {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
+  const [unfilteredResults, setUnfilteredResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["process", "document", "entity"])
   const [selectedCategory, setSelectedCategory] = useState("")
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
@@ -34,22 +36,45 @@ export function SearchPage() {
     }
   }, [query])
 
+  useEffect(() => {
+    let filtered = unfilteredResults
+
+    if (selectedTypes.length > 0) {
+      filtered = filtered.filter(result => selectedTypes.includes(result.type))
+    }
+
+    if (selectedCategory) {
+      filtered = filtered.filter(result => result.category === selectedCategory)
+    }
+
+    setResults(filtered)
+  }, [selectedTypes, selectedCategory, unfilteredResults])
+
   const handleSearch = async () => {
     if (!query.trim()) return
 
     setSuggestions([])
     setIsSearching(true)
     try {
-      const searchResults = await SearchService.search(query, {
-        type: selectedTypes,
-        category: selectedCategory || undefined,
-      })
-      setResults(searchResults)
+      // La recherche initiale ignore les filtres pour obtenir tous les résultats
+      const searchResults = await SearchService.search(query, {})
+      setUnfilteredResults(searchResults)
+      setResults(searchResults) // Afficher tous les résultats au début
+
+      // Mettre à jour les catégories disponibles
+      const categories = [...new Set(searchResults.map(r => r.category).filter(Boolean))] as string[]
+      setAvailableCategories(categories)
+
+      // Réinitialiser les filtres lors d'une nouvelle recherche
+      setSelectedTypes(["process", "document", "entity"])
+      setSelectedCategory("")
+
       SearchService.addRecentSearch(query)
       setRecentSearches(SearchService.getRecentSearches())
     } catch (error) {
       console.error("Erreur lors de la recherche:", error)
       setResults([])
+      setUnfilteredResults([])
     } finally {
       setIsSearching(false)
     }
@@ -64,9 +89,11 @@ export function SearchPage() {
   const handleReset = () => {
     setQuery("")
     setResults([])
+    setUnfilteredResults([])
     setSelectedTypes(["process", "document", "entity"])
     setSelectedCategory("")
     setSuggestions([])
+    setAvailableCategories([])
   }
 
   const toggleType = (type: string) => {
@@ -166,20 +193,24 @@ export function SearchPage() {
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Types de contenu</label>
                     <div className="flex flex-wrap gap-2">
-                      {["process", "document", "entity"].map((type) => (
-                        <button
-                          key={type}
-                          onClick={() => toggleType(type)}
-                          className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm border transition-colors ${
-                            selectedTypes.includes(type)
-                              ? "bg-slate-800 text-white border-slate-800"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          {getTypeIcon(type)}
-                          <span>{getTypeLabel(type)}</span>
-                        </button>
-                      ))}
+                      {["process", "document", "entity"].map((type) => {
+                        const isTypeAvailable = unfilteredResults.some(result => result.type === type)
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => toggleType(type)}
+                            disabled={!isTypeAvailable}
+                            className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm border transition-colors ${
+                              selectedTypes.includes(type)
+                                ? "bg-slate-800 text-white border-slate-800"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                            } ${!isTypeAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            {getTypeIcon(type)}
+                            <span>{getTypeLabel(type)}</span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                   <div>
@@ -188,11 +219,12 @@ export function SearchPage() {
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      disabled={availableCategories.length === 0}
                     >
                       <option value="">Toutes les catégories</option>
-                      <option value="Ressources Humaines">Ressources Humaines</option>
-                      <option value="Ventes">Ventes</option>
-                      <option value="Production">Production</option>
+                      {availableCategories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
