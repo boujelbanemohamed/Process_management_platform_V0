@@ -18,10 +18,11 @@ async function validateTaskData(sql: any, data: any) {
   if (projectId) {
     const projectResult = await sql`SELECT end_date FROM projects WHERE id = ${projectId}`;
     if (projectResult.length === 0) return "Projet non trouvé";
-    const projectEndDate = projectResult[0].end_date;
+    const projectEndDate = new Date(projectResult[0].end_date);
 
-    if (endDate && projectEndDate && new Date(endDate) > new Date(projectEndDate)) {
-      return "La date de fin de la tâche ne peut pas dépasser celle du projet";
+    if (endDate && projectEndDate && new Date(endDate) > projectEndDate) {
+      const formattedEndDate = projectEndDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return `La date de fin ne peut pas dépasser celle du projet (${formattedEndDate})`;
     }
 
     if (assigneeId && assigneeType) {
