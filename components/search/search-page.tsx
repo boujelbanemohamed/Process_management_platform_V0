@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { SearchService } from "@/lib/search"
 import type { SearchResult } from "@/lib/search"
-import { Search, Filter, Clock, FileText, FolderOpen, Users, ChevronRight } from "lucide-react"
+import { Search, Filter, Clock, FileText, FolderOpen, Users, ChevronRight, X } from "lucide-react"
 import Link from "next/link"
 
 export function SearchPage() {
@@ -58,6 +58,14 @@ export function SearchPage() {
     if (e.key === "Enter") {
       handleSearch()
     }
+  }
+
+  const handleReset = () => {
+    setQuery("")
+    setResults([])
+    setSelectedTypes(["process", "document", "entity"])
+    setSelectedCategory("")
+    setSuggestions([])
   }
 
   const toggleType = (type: string) => {
@@ -143,6 +151,10 @@ export function SearchPage() {
               <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="h-12">
                 <Filter className="h-4 w-4 mr-2" />
                 Filtres
+              </Button>
+              <Button variant="outline" onClick={handleReset} className="h-12">
+                <X className="h-4 w-4 mr-2" />
+                Réinitialiser
               </Button>
             </div>
 
@@ -272,7 +284,7 @@ export function SearchPage() {
             <Search className="h-12 w-12 text-slate-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-slate-800 mb-2">Aucun résultat trouvé</h3>
             <p className="text-slate-500 mb-4">Essayez avec des mots-clés différents ou vérifiez l'orthographe.</p>
-            <Button variant="outline" onClick={() => setQuery("")}>
+            <Button variant="outline" onClick={handleReset}>
               Effacer la recherche
             </Button>
           </CardContent>
