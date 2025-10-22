@@ -193,6 +193,7 @@ export function TaskForm({ onSuccess, task }: TaskFormProps) {
             <FormItem><FormLabel>Priorité</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="status" render={({ field }) => (
+            // JULES: Correction de la syntaxe - suppression de la double balise FormMessage
             <FormItem><FormLabel>Statut</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="remarks" render={({ field }) => (
