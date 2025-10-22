@@ -13,11 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// --- Types ---
+// --- Types et Constantes Partagées ---
 type Task = { id: number; [key: string]: any; };
 type Project = { id: string; name: string; members: any[]; entities: any[] };
 type User = { id: string; name: string };
 type Entity = { id: string; name: string };
+
+const PRIORITIES = ["Basse", "Moyenne", "Haute", "Critique"] as const;
+const STATUSES = ["À faire", "En cours", "En attente de validation", "Terminé"] as const;
 
 // --- Schéma et Props ---
 const formSchema = z.object({
@@ -27,8 +30,8 @@ const formSchema = z.object({
   assignee: z.string().min(1, "L'assigné est requis."),
   startDate: z.string().min(1, "La date de début est requise."),
   endDate: z.string().min(1, "La date de fin est requise."),
-  priority: z.enum(["Basse", "Moyenne", "Haute", "Critique"]),
-  status: z.enum(["À faire", "En cours", "En attente de validation", "Terminé"]),
+  priority: z.enum(PRIORITIES),
+  status: z.enum(STATUSES),
   remarks: z.string().optional(),
 });
 
