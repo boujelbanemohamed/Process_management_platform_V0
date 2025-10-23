@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(comments);
   } catch (error) {
-    console.error('API GET Error:', error);
+    console.error('API Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ error: 'Failed to fetch comments', details: errorMessage }, { status: 500 });
   }
@@ -86,9 +86,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newComment[0], { status: 201 });
   } catch (error) {
-    console.error('API POST Error:', error);
+    console.error('API Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    // Renvoyer l'erreur complète pour le débogage
-    return NextResponse.json({ error: 'Failed to create comment', details: errorMessage, fullError: error }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create comment', details: errorMessage }, { status: 500 });
   }
 }
