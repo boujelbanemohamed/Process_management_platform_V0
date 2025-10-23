@@ -159,7 +159,7 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
           />
           <Button onClick={handleCommentSubmit}>Ajouter le commentaire</Button>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
           {loadingComments ? (
             <p>Chargement des commentaires...</p>
           ) : comments.length > 0 ? (

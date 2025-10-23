@@ -222,7 +222,7 @@ export default function TasksPage() {
       </AlertDialog>
 
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Détails de la Tâche</DialogTitle>
           </DialogHeader>
