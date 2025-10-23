@@ -1,11 +1,15 @@
 // components/tasks/task-view.tsx
 "use client";
 
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { AuthService } from '@/lib/auth'; // Pour récupérer l'utilisateur actuel
 
 // --- Types et Constantes ---
 type TaskStatus = 'À faire' | 'En cours' | 'En attente de validation' | 'Terminé';
@@ -13,7 +17,7 @@ const STATUSES: TaskStatus[] = ['À faire', 'En cours', 'En attente de validatio
 
 type Task = {
   id: number;
-  project_id: number; // Ajout pour le lien
+  project_id: number;
   task_number: string;
   name: string;
   description?: string;
@@ -27,9 +31,16 @@ type Task = {
   remarks?: string;
 };
 
+type Comment = {
+  id: number;
+  content: string;
+  created_at: string;
+  author_name: string;
+};
+
 interface TaskViewProps {
   task: Task;
-  onTaskUpdate: () => void; // Callback générique pour rafraîchir
+  onTaskUpdate: () => void;
 }
 
 const DetailItem = ({ label, value }: { label: string; value?: string | null }) => {
@@ -43,6 +54,28 @@ const DetailItem = ({ label, value }: { label: string; value?: string | null }) 
 };
 
 export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(true);
+
+  const fetchComments = async () => {
+    try {
+      setLoadingComments(true);
+      const response = await fetch(`/api/comments?task_id=${task.id}`);
+      if (!response.ok) throw new Error('Failed to fetch comments');
+      const data = await response.json();
+      setComments(data);
+    } catch (error) {
+      toast.error("Erreur lors du chargement des commentaires.");
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, [task.id]);
+
   const handleStatusChange = async (newStatus: TaskStatus) => {
     try {
       const response = await fetch(`/api/tasks?id=${task.id}`, {
@@ -52,50 +85,98 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
       });
       if (!response.ok) throw new Error("Échec de la mise à jour");
       toast.success("Statut de la tâche mis à jour !");
-      onTaskUpdate(); // Notifier le parent de rafraîchir les données
+      onTaskUpdate();
     } catch (error) {
       toast.error("Erreur lors de la mise à jour du statut.");
     }
   };
 
+  const handleCommentSubmit = async () => {
+    const currentUser = AuthService.getCurrentUser();
+    if (!newComment.trim() || !currentUser) {
+      toast.warning("Le commentaire ne peut pas être vide.");
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          userId: currentUser.id,
+          content: newComment,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to post comment');
+      const savedComment = await response.json();
+      setComments([savedComment, ...comments]); // Ajoute le nouveau commentaire en haut de la liste
+      setNewComment('');
+      toast.success("Commentaire ajouté !");
+    } catch (error) {
+      toast.error("Erreur lors de l'ajout du commentaire.");
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="pb-2 border-b">
-        <div className="text-sm text-gray-500">
+    <div className="space-y-6">
+      {/* Section Détails de la tâche */}
+      <div className="space-y-4">
+        <div className="pb-2 border-b">
+          <div className="text-sm text-gray-500">
             Nom du projet :{' '}
             <Link href={`/projects/${task.project_id}`} className="text-blue-600 hover:underline cursor-pointer">{task.project_name}</Link>
+          </div>
+          <h2 className="text-2xl font-bold mt-1">{task.name}</h2>
+          <p className="text-lg text-gray-700 font-mono">{task.task_number}</p>
         </div>
-        <h2 className="text-2xl font-bold mt-1">{task.name}</h2>
-        <p className="text-lg text-gray-700 font-mono">{task.task_number}</p>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+                <p className="text-sm font-semibold text-gray-500">Statut</p>
+                <Select onValueChange={handleStatusChange} defaultValue={task.status}>
+                    <SelectTrigger className="w-[200px] mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <DetailItem label="Priorité" value={task.priority} />
+            <DetailItem label="Assigné à" value={task.assignee_name} />
+            <DetailItem label="Date de début" value={format(new Date(task.start_date), 'dd MMMM yyyy', { locale: fr })} />
+            <DetailItem label="Date de fin" value={format(new Date(task.end_date), 'dd MMMM yyyy', { locale: fr })} />
+        </div>
+        <DetailItem label="Description" value={task.description} />
+        <DetailItem label="Remarques" value={task.remarks} />
+        {task.completion_date && <DetailItem label="Date de finalisation" value={format(new Date(task.completion_date), 'dd MMMM yyyy à HH:mm', { locale: fr })} />}
       </div>
 
-      <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-        <div>
-            <p className="text-sm font-semibold text-gray-500">Statut</p>
-            <Select onValueChange={handleStatusChange} defaultValue={task.status}>
-                <SelectTrigger className="w-[200px] mt-1">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-            </Select>
+      {/* Section Commentaires */}
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-lg font-semibold">Commentaires</h3>
+        <div className="space-y-2">
+          <Textarea
+            placeholder="Ajouter un commentaire..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
+          <Button onClick={handleCommentSubmit}>Ajouter le commentaire</Button>
         </div>
-        <DetailItem label="Priorité" value={task.priority} />
-        <DetailItem label="Assigné à" value={task.assignee_name} />
-        <DetailItem label="Date de début" value={format(new Date(task.start_date), 'dd MMMM yyyy', { locale: fr })} />
-        <DetailItem label="Date de fin" value={format(new Date(task.end_date), 'dd MMMM yyyy', { locale: fr })} />
+        <div className="space-y-4">
+          {loadingComments ? (
+            <p>Chargement des commentaires...</p>
+          ) : comments.length > 0 ? (
+            comments.map((comment) => (
+              <div key={comment.id} className="bg-gray-50 p-3 rounded-lg border">
+                <p className="text-gray-800">{comment.content}</p>
+                <div className="text-xs text-gray-500 mt-2 flex justify-between">
+                  <span>Par {comment.author_name}</span>
+                  <span>{format(new Date(comment.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">Aucun commentaire pour le moment.</p>
+          )}
+        </div>
       </div>
-
-      <DetailItem label="Description" value={task.description} />
-      <DetailItem label="Remarques" value={task.remarks} />
-
-      {task.completion_date && (
-        <DetailItem
-          label="Date de finalisation"
-          value={format(new Date(task.completion_date), 'dd MMMM yyyy à HH:mm', { locale: fr })}
-        />
-      )}
     </div>
   );
 }

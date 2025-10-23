@@ -329,6 +329,17 @@ export async function initializeDatabase() {
       )
     `)
 
+    // Create task_comments table
+    await DatabaseService.query(`
+      CREATE TABLE IF NOT EXISTS task_comments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
     console.log("Database tables and permissions system initialized successfully")
   } catch (error) {
     console.error("Database initialization failed:", error)
