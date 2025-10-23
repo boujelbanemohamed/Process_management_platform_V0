@@ -61,8 +61,11 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
   return (
     <div className="space-y-4">
       <div className="pb-2 border-b">
-        <Link href={`/projects/${task.project_id}`} className="text-sm text-blue-600 hover:underline cursor-pointer">{task.project_name}</Link>
-        <h2 className="text-2xl font-bold">{task.name}</h2>
+        <div className="text-sm text-gray-500">
+            Nom du projet :{' '}
+            <Link href={`/projects/${task.project_id}`} className="text-blue-600 hover:underline cursor-pointer">{task.project_name}</Link>
+        </div>
+        <h2 className="text-2xl font-bold mt-1">{task.name}</h2>
         <p className="text-lg text-gray-700 font-mono">{task.task_number}</p>
       </div>
 
@@ -80,12 +83,6 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
         </div>
         <DetailItem label="Priorité" value={task.priority} />
         <DetailItem label="Assigné à" value={task.assignee_name} />
-        <div>
-          <p className="text-sm font-semibold text-gray-500">Projet</p>
-          <Link href={`/projects/${task.project_id}`} className="text-gray-800 hover:underline text-blue-600">
-            {task.project_name}
-          </Link>
-        </div>
         <DetailItem label="Date de début" value={format(new Date(task.start_date), 'dd MMMM yyyy', { locale: fr })} />
         <DetailItem label="Date de fin" value={format(new Date(task.end_date), 'dd MMMM yyyy', { locale: fr })} />
       </div>
