@@ -157,7 +157,10 @@ export function ProjectList() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg">{project.name}</CardTitle>
+                  <CardTitle className="text-lg">
+                    <span className="text-muted-foreground">Nom du projet : </span>
+                    {project.name}
+                  </CardTitle>
                   <CardDescription>
                     Créé par {project.created_by_name}
                   </CardDescription>
