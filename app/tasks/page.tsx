@@ -44,7 +44,9 @@ function TaskCard({ task, onEdit, onDelete, onView }: { task: Task; onEdit: (tas
       </div>
 
       <p className="font-semibold text-gray-900 mb-1">{task.name}</p>
-      <p className="text-xs text-gray-500 mb-2">{task.project_name}</p>
+      <p className="text-xs text-gray-500 mb-2">
+        <span className="font-semibold">Nom du projet :</span> {task.project_name}
+      </p>
 
       <div className="text-xs text-gray-600 space-y-1 mb-3">
         <p>Début: {format(new Date(task.start_date), 'dd MMM yyyy', { locale: fr })}</p>
