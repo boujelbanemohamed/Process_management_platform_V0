@@ -28,41 +28,43 @@ const PRIORITIES = ["Basse", "Moyenne", "Haute", "Critique"];
 // --- Composants ---
 function TaskCard({ task, onEdit, onDelete, onView }: { task: Task; onEdit: (task: Task) => void; onDelete: (task: Task) => void; onView: (task: Task) => void; }) {
   return (
-    <div className="bg-white p-3 mb-4 rounded-lg shadow-sm border border-gray-200 group text-sm">
-      <div className="flex justify-between items-start mb-2">
-        <span className="font-bold text-gray-800 pr-2">{task.task_number}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => onView(task)}><Eye className="mr-2 h-4 w-4" />Voir</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(task)}><Pencil className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="bg-white p-3 mb-4 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between text-sm">
+      <div>
+        <div className="flex justify-between items-start mb-2">
+          <span className="font-bold text-gray-800 pr-2">{task.task_number}</span>
+          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+              task.priority === 'Critique' ? 'bg-red-100 text-red-800' :
+              task.priority === 'Haute' ? 'bg-orange-100 text-orange-800' :
+              task.priority === 'Moyenne' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-blue-100 text-blue-800'
+          }`}>
+            {task.priority}
+          </span>
+        </div>
+
+        <p className="font-semibold text-gray-900 mb-1">{task.name}</p>
+        <p className="text-xs text-gray-500 mb-2">
+          <span className="font-semibold">Nom du projet :</span> {task.project_name}
+        </p>
+
+        <div className="text-xs text-gray-600 space-y-1 my-3">
+          <p>Début: {format(new Date(task.start_date), 'dd MMM yyyy', { locale: fr })}</p>
+          <p>Fin: {format(new Date(task.end_date), 'dd MMM yyyy', { locale: fr })}</p>
+        </div>
+
+        <p className="text-xs text-gray-600 mb-3">Assigné à: {task.assignee_name}</p>
       </div>
 
-      <p className="font-semibold text-gray-900 mb-1">{task.name}</p>
-      <p className="text-xs text-gray-500 mb-2">
-        <span className="font-semibold">Nom du projet :</span> {task.project_name}
-      </p>
-
-      <div className="text-xs text-gray-600 space-y-1 mb-3">
-        <p>Début: {format(new Date(task.start_date), 'dd MMM yyyy', { locale: fr })}</p>
-        <p>Fin: {format(new Date(task.end_date), 'dd MMM yyyy', { locale: fr })}</p>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <span className="text-xs text-gray-600">{task.assignee_name}</span>
-        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-            task.priority === 'Critique' ? 'bg-red-100 text-red-800' :
-            task.priority === 'Haute' ? 'bg-orange-100 text-orange-800' :
-            task.priority === 'Moyenne' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-blue-100 text-blue-800'
-        }`}>
-          {task.priority}
-        </span>
+      <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2">
+        <Button variant="outline" size="sm" onClick={() => onView(task)} className="flex-1">
+          <Eye className="h-4 w-4 mr-1" /> Voir
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onEdit(task)} className="flex-1">
+          <Pencil className="h-4 w-4 mr-1" /> Modifier
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onDelete(task)} className="flex-1 text-red-600 hover:text-red-700">
+          <Trash2 className="h-4 w-4 mr-1" /> Supprimer
+        </Button>
       </div>
     </div>
   );
