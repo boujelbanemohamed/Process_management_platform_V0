@@ -77,12 +77,26 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
   }, [task.id]);
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
-    // ... (logique de changement de statut)
+    try {
+      const response = await fetch(`/api/tasks?id=${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) throw new Error("Échec de la mise à jour");
+      toast.success("Statut de la tâche mis à jour !");
+      onTaskUpdate();
+    } catch (error) {
+      toast.error("Erreur lors de la mise à jour du statut.");
+    }
   };
 
   const handleCommentSubmit = async () => {
     const currentUser = AuthService.getCurrentUser();
-    if (!newComment.trim() || !currentUser) return;
+    if (!newComment.trim() || !currentUser) {
+      toast.warning("Le commentaire ne peut pas être vide.");
+      return;
+    }
 
     try {
       const response = await fetch('/api/comments', {
@@ -102,9 +116,32 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Section Détails de la tâche */}
+      {/* Section Détails de la tâche (RESTAURÉE) */}
       <div className="space-y-4">
-        {/* ... (détails de la tâche) */}
+        <div className="pb-2 border-b">
+          <div className="text-sm text-gray-500">
+            Nom du projet :{' '}
+            <Link href={`/projects/${task.project_id}`} className="text-blue-600 hover:underline cursor-pointer">{task.project_name}</Link>
+          </div>
+          <h2 className="text-2xl font-bold mt-1">{task.name}</h2>
+          <p className="text-lg text-gray-700 font-mono">{task.task_number}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+                <p className="text-sm font-semibold text-gray-500">Statut</p>
+                <Select onValueChange={handleStatusChange} defaultValue={task.status}>
+                    <SelectTrigger className="w-[200px] mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <DetailItem label="Priorité" value={task.priority} />
+            <DetailItem label="Assigné à" value={task.assignee_name} />
+            <DetailItem label="Date de début" value={format(new Date(task.start_date), 'dd MMMM yyyy', { locale: fr })} />
+            <DetailItem label="Date de fin" value={format(new Date(task.end_date), 'dd MMMM yyyy', { locale: fr })} />
+        </div>
+        <DetailItem label="Description" value={task.description} />
+        <DetailItem label="Remarques" value={task.remarks} />
+        {task.completion_date && <DetailItem label="Date de finalisation" value={format(new Date(task.completion_date), 'dd MMMM yyyy à HH:mm', { locale: fr })} />}
       </div>
 
       {/* Section Commentaires */}
@@ -119,15 +156,19 @@ export function TaskView({ task, onTaskUpdate }: TaskViewProps) {
           <Button onClick={handleCommentSubmit}>Ajouter le commentaire</Button>
         </div>
         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-          {loadingComments ? <p>Chargement...</p> : comments.map((comment) => (
-            <div key={comment.id} className="bg-gray-50 p-3 rounded-lg border">
-              <p className="text-gray-800">{comment.content}</p>
-              <div className="text-xs text-gray-500 mt-2 flex justify-between">
-                <span>Par {comment.author_name}</span>
-                <span>{format(new Date(comment.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</span>
+          {loadingComments ? <p>Chargement des commentaires...</p> : comments.length > 0 ? (
+            comments.map((comment) => (
+              <div key={comment.id} className="bg-gray-50 p-3 rounded-lg border">
+                <p className="text-gray-800">{comment.content}</p>
+                <div className="text-xs text-gray-500 mt-2 flex justify-between">
+                  <span>Par {comment.author_name}</span>
+                  <span>{format(new Date(comment.created_at), 'dd/MM/yyyy à HH:mm', { locale: fr })}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-gray-500">Aucun commentaire pour le moment.</p>
+          )}
         </div>
       </div>
     </div>
