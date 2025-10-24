@@ -304,42 +304,6 @@ export async function initializeDatabase() {
       ON CONFLICT DO NOTHING
     `)
 
-    // Create tasks table
-    await DatabaseService.query(`
-      CREATE TABLE IF NOT EXISTS tasks (
-        id SERIAL PRIMARY KEY,
-        task_number VARCHAR(20) UNIQUE NOT NULL,
-        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        assignee_id INTEGER,
-        assignee_type VARCHAR(50), -- 'user' or 'entity'
-        start_date DATE,
-        end_date DATE,
-        priority VARCHAR(50) DEFAULT 'Moyenne',
-        status VARCHAR(50) DEFAULT 'À faire',
-        completion_date TIMESTAMP,
-        remarks TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT fk_project
-            FOREIGN KEY(project_id)
-            REFERENCES projects(id)
-            ON DELETE CASCADE
-      )
-    `)
-
-    // Create task_comments table
-    await DatabaseService.query(`
-      CREATE TABLE IF NOT EXISTS task_comments (
-        id SERIAL PRIMARY KEY,
-        task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `)
-
     console.log("Database tables and permissions system initialized successfully")
   } catch (error) {
     console.error("Database initialization failed:", error)
