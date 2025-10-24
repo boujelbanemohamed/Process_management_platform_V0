@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { initializeDatabase, DatabaseService } from "@/lib/database"
+import { initializeDatabase } from "@/lib/database"
+import { DatabaseService } from "@/lib/database-service"
 
 export async function POST() {
   try {
@@ -14,7 +15,7 @@ export async function POST() {
 export async function GET() {
   try {
     // Test de l'existence des tables
-    const tables = ['projects', 'project_entities', 'project_members', 'users', 'entities', 'tasks'];
+    const tables = ['projects', 'project_entities', 'project_members', 'users', 'entities'];
     const results: any = {};
     
     for (const table of tables) {
