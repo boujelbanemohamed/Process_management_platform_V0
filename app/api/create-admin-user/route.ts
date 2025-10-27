@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/database';
 import bcrypt from 'bcryptjs';
 
-export async function POST() {
+export async function GET() {
   try {
     const email = 'boujelbane@gmail.com';
     const plainPassword = 'Leila131182*';
