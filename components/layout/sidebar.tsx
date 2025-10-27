@@ -25,14 +25,12 @@ import {
   Circle,
   Briefcase,
   Palette,
-  ClipboardCheck,
 } from "lucide-react"
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { name: "Processus", href: "/processes", icon: FileText },
   { name: "Projets", href: "/projects", icon: Briefcase },
-  { name: "Tâches", href: "/tasks", icon: ClipboardCheck },
   { name: "Documents", href: "/documents", icon: FolderOpen },
   { name: "Recherche", href: "/search", icon: Search },
   { name: "Entités", href: "/entities", icon: Users },
