@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 export async function GET() {
   try {
     const email = 'boujelbane@gmail.com';
-    const plainPassword = 'Leila131182*';
+    const plainPassword = 'Admin123456'; // Nouveau mot de passe simple
     const role = 'admin';
 
     // Étape 1: Supprimer l'utilisateur existant pour nettoyer
@@ -26,7 +26,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Utilisateur administrateur recréé avec succès (colonne corrigée).',
+      message: 'Utilisateur administrateur recréé avec succès (mot de passe corrigé).',
       user: newUser.rows[0]
     });
 
