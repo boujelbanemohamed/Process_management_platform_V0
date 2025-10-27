@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { initializeDatabase } from "@/lib/database"
-import { DatabaseService } from "@/lib/database-service"
+import { DatabaseService, initializeDatabase } from "@/lib/database"
 
 export async function POST() {
   try {

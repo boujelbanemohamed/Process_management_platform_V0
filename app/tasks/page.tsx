@@ -28,7 +28,12 @@ function KanbanColumn({ title, tasks, onEdit, onDelete, onView }: { title: strin
 
 export default function TasksPage() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
-  // ... (autres états) ...
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
   const fetchAllData = async () => {
     // ... (logique de fetch) ...
@@ -40,7 +45,11 @@ export default function TasksPage() {
     return allTasks;
   }, [allTasks /*, ...autres dépendances de filtre */]);
 
-  // ... (gestionnaires d'événements handleEdit, handleDelete, etc.) ...
+  const handleFormSuccess = () => {
+    fetchAllData(); // Re-fetch data to show the new/updated task
+    setIsFormModalOpen(false); // Close the modal
+    toast.success(editingTask ? "Tâche modifiée avec succès !" : "Tâche créée avec succès !");
+  };
 
   return (
     <DashboardLayout>
