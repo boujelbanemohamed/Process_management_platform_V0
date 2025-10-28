@@ -104,17 +104,19 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
       const url = mode === "create" ? "/api/entities" : `/api/entities?id=${entityId}`
       const method = mode === "create" ? "POST" : "PUT"
 
-      const body = {
-        ...formData,
-        managerId: formData.managerId || null,
-      };
+      console.log('Form submission:', {
+        url,
+        method,
+        formData,
+        entityId
+      })
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {

@@ -5,10 +5,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Users, FolderOpen, Eye, Edit, Trash2, Search, UserCheck } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
+import { toast } from "sonner"
 
 const typeIcons = {
   department: Building2,
@@ -46,6 +57,8 @@ export function EntityList() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null)
 
   // Charger les entités depuis l'API
   useEffect(() => {
@@ -87,6 +100,33 @@ export function EntityList() {
     departments: entities.filter(e => e.type === 'department').length,
     teams: entities.filter(e => e.type === 'team').length,
     projects: entities.filter(e => e.type === 'project').length,
+  }
+
+  const handleDeleteClick = (entity: Entity) => {
+    setEntityToDelete(entity)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!entityToDelete) return
+
+    try {
+      const response = await fetch(`/api/entities?id=${entityToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setEntities((prev) => prev.filter((e) => e.id !== entityToDelete.id))
+        toast.success(`L'entité "${entityToDelete.name}" a été supprimée.`)
+      } else {
+        toast.error("Erreur lors de la suppression de l'entité.")
+      }
+    } catch (error) {
+      toast.error("Une erreur s'est produite.")
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setEntityToDelete(null)
+    }
   }
 
   return (
@@ -207,7 +247,7 @@ export function EntityList() {
                                   <Edit className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" onClick={() => handleDeleteClick(entity)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </>
@@ -228,6 +268,27 @@ export function EntityList() {
           )}
         </>
       )}
+
+      {/* Boîte de dialogue de confirmation de suppression */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'entité "{entityToDelete?.name}" sera définitivement supprimée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
