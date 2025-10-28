@@ -242,7 +242,11 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="type">Type</Label>
                 <select id="type" value={formData.type} onChange={(e) => setFormData(p => ({ ...p, type: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500">
+                  <option value="direction">Direction</option>
                   <option value="department">Département</option>
+                  <option value="service">Service</option>
+                  <option value="cellule">Cellule</option>
+                  <option value="division">Division</option>
                   <option value="team">Équipe</option>
                   <option value="project">Projet</option>
                 </select>
