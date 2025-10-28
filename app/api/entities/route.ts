@@ -177,6 +177,9 @@ export async function DELETE(request: NextRequest) {
     const sql = getSql()
     await ensureEntitiesTable(sql)
 
+    // Dissocier les utilisateurs de l'entité avant de la supprimer
+    await sql`UPDATE users SET entity_id = NULL WHERE entity_id = ${Number(id)}`
+
     const result = await sql`
       DELETE FROM entities
       WHERE id = ${Number(id)}
