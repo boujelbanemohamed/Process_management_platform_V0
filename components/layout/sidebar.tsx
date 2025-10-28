@@ -58,6 +58,12 @@ export function Sidebar() {
   const isAdmin = user?.role === "admin"
   const isSuperAdmin = user?.role === "super_admin"
 
+  // Debug: afficher le rôle de l'utilisateur
+  console.log('🔍 Debug Sidebar - User:', user)
+  console.log('🔍 Debug Sidebar - Role:', user?.role)
+  console.log('🔍 Debug Sidebar - isAdmin:', isAdmin)
+  console.log('🔍 Debug Sidebar - isSuperAdmin:', isSuperAdmin)
+
   const handleLogout = () => {
     AuthService.logout()
     router.push("/")

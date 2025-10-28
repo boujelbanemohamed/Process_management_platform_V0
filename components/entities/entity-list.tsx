@@ -64,18 +64,14 @@ export function EntityList() {
   useEffect(() => {
     const loadEntities = async () => {
       try {
-        console.log("🔄 Chargement des entités...")
         const response = await fetch("/api/entities", { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
-          console.log("📥 Entités chargées:", data)
           setEntities(Array.isArray(data) ? data : [])
         } else {
-          console.error("❌ Erreur chargement entités:", response.status)
           setEntities([])
         }
       } catch (error) {
-        console.error("❌ Erreur chargement entités:", error)
         setEntities([])
       } finally {
         setLoading(false)

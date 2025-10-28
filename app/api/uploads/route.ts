@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     const processId = form.get("processId")?.toString() || ""
     const projectId = form.get("projectId")?.toString() || ""
     const description = (form.get("description")?.toString() || "").slice(0, 2000)
-    const userId = form.get("userId")?.toString()
     const existingId = form.get("existingId")?.toString() || ""
+    const userId = form.get("userId")?.toString()
 
     if (!file) {
       return NextResponse.json({ error: "Fichier requis" }, { status: 400 })
