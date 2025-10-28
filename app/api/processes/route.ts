@@ -130,12 +130,22 @@ export async function POST(request: NextRequest) {
     const sql = getSql()
     await ensureCoreTables(sql)
     
-    // Vérifier que l'utilisateur existe, sinon utiliser l'ID 1
-    let userId = createdBy || 1
-    if (createdBy) {
-      const userExists = await sql`SELECT id FROM users WHERE id = ${createdBy}`
+    // Vérifier que l'utilisateur existe, sinon utiliser le premier utilisateur disponible
+    let userId = createdBy
+    if (userId) {
+      const userExists = await sql`SELECT id FROM users WHERE id = ${userId}`
       if (userExists.length === 0) {
-        userId = 1 // Fallback vers l'utilisateur par défaut
+        userId = null // L'utilisateur fourni n'existe pas
+      }
+    }
+
+    if (!userId) {
+      const firstUser = await sql`SELECT id FROM users LIMIT 1`
+      if (firstUser.length > 0) {
+        userId = firstUser[0].id
+      } else {
+        // Aucun utilisateur dans la base de données, renvoyer une erreur
+        return NextResponse.json({ error: "No users found in the database to assign the process to." }, { status: 500 })
       }
     }
     
