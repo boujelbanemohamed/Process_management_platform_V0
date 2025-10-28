@@ -119,9 +119,10 @@ export function EntityDetail({ entityId }: EntityDetailProps) {
 
   // Charger les processus depuis l'API
   useEffect(() => {
+    if (!entityId) return;
     const loadProcesses = async () => {
       try {
-        const response = await fetch("/api/processes")
+        const response = await fetch(`/api/processes?entityId=${entityId}`)
         if (response.ok) {
           const data = await response.json()
           setProcesses(Array.isArray(data) ? data : [])

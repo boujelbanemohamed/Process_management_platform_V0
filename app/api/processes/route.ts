@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    const entityId = searchParams.get('entityId')
 
     const sql = getSql()
     await ensureCoreTables(sql)
@@ -78,7 +79,17 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(processData)
-           } else {
+    } else if (entityId) {
+      // Récupérer les processus pour une entité spécifique
+      const processes = await sql`
+        SELECT p.*, u.name as created_by_name
+        FROM processes p
+        LEFT JOIN users u ON p.created_by = u.id
+        WHERE ${entityId} = ANY(p.entity_ids)
+        ORDER BY p.updated_at DESC
+      `
+      return NextResponse.json(processes)
+    } else {
              // Récupérer tous les processus avec le nombre de documents
              const processes = await sql`
                SELECT p.*, u.name as created_by_name,
