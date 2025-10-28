@@ -52,7 +52,7 @@ export function EntityList() {
     const loadEntities = async () => {
       try {
         console.log("🔄 Chargement des entités...")
-        const response = await fetch("/api/entities")
+        const response = await fetch("/api/entities", { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
           console.log("📥 Entités chargées:", data)
