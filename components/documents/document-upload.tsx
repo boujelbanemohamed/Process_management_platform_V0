@@ -108,7 +108,7 @@ export function DocumentUpload() {
       <Card className="border-slate-200">
         <CardHeader>
           <CardTitle className="text-slate-800">Sélection des fichiers</CardTitle>
-          <CardDescription>Choisissez les fichiers à importer (max 10 Mo)</CardDescription>
+          <CardDescription>Choisissez les fichiers à importer (max 20 Mo)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
