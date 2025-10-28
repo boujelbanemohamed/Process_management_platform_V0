@@ -111,12 +111,17 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
         entityId
       })
 
+      const body = {
+        ...formData,
+        managerId: formData.managerId || null,
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
