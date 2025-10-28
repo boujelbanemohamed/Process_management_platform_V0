@@ -139,22 +139,20 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Créer le processus avec les entités
+    // Créer le processus avec les entités et les tags
     const result = await sql`
-      INSERT INTO processes (name, description, category, status, created_by, entity_ids)
-      VALUES (${name}, ${description || ''}, ${category || ''}, ${status || 'draft'}, ${userId}, ${entityIds ? entityIds.map((id: string) => Number(id)) : null})
-      RETURNING id, name, description, category, status, created_by, created_at, updated_at, entity_ids
+      INSERT INTO processes (name, description, category, status, created_by, entity_ids, tags)
+      VALUES (
+        ${name},
+        ${description || ''},
+        ${category || ''},
+        ${status || 'draft'},
+        ${userId},
+        ${entityIds ? entityIds.map((id: string) => Number(id)) : null},
+        ${tags && Array.isArray(tags) && tags.length > 0 ? tags : null}
+      )
+      RETURNING id, name, description, category, status, created_by, created_at, updated_at, entity_ids, tags
     `
-    
-    // Ajouter les tags séparément si nécessaire
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      const processId = result[0].id
-      await sql`
-        UPDATE processes 
-        SET tags = ${tags}
-        WHERE id = ${processId}
-      `
-    }
     
     console.log('SQL result:', result)
 
@@ -173,7 +171,7 @@ export async function POST(request: NextRequest) {
       created_by: process.created_by,
       created_at: process.created_at,
       updated_at: process.updated_at,
-      tags: tags && Array.isArray(tags) ? tags : [],
+      tags: process.tags || [],
       entity_ids: process.entity_ids || []
     }
 
