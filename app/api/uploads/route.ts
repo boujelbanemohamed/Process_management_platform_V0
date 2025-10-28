@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "Fichier requis" }, { status: 400 })
     }
-    if (file.size > 10 * 1024 * 1024) { // 10 MB
-      return NextResponse.json({ error: "Fichier trop volumineux (max 10 Mo)" }, { status: 413 })
+    if (file.size > 20 * 1024 * 1024) { // 20 MB
+      return NextResponse.json({ error: "Fichier trop volumineux (max 20 Mo)" }, { status: 413 })
     }
 
     const safeName = `${Date.now()}-${file.name}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
