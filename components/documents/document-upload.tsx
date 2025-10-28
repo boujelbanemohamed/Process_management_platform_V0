@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,7 @@ export function DocumentUpload() {
   const [loadingProcesses, setLoadingProcesses] = useState(false)
   const [loadingProjects, setLoadingProjects] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     const fetchProcesses = async () => {
@@ -103,6 +105,9 @@ export function DocumentUpload() {
         fd.append('processId', f.processId)
         fd.append('projectId', f.projectId)
         fd.append('description', f.description)
+        if (user?.id) {
+          fd.append('userId', user.id)
+        }
 
         const res = await fetch('/api/uploads', { method: 'POST', body: fd })
         if (!res.ok) {
