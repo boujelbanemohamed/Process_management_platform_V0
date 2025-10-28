@@ -4,7 +4,7 @@ import { EntityForm } from "@/components/entities/entity-form"
 export default function CreateEntityPage() {
   return (
     <DashboardLayout>
-      <EntityForm />
+      <EntityForm mode="create" />
     </DashboardLayout>
   )
 }

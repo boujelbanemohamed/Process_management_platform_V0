@@ -104,13 +104,6 @@ export function EntityForm({ entityId, mode }: EntityFormProps) {
       const url = mode === "create" ? "/api/entities" : `/api/entities?id=${entityId}`
       const method = mode === "create" ? "POST" : "PUT"
 
-      console.log('Form submission:', {
-        url,
-        method,
-        formData,
-        entityId
-      })
-
       const body = {
         ...formData,
         managerId: formData.managerId || null,
