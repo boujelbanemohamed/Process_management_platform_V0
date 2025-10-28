@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     const processId = form.get("processId")?.toString() || ""
     const projectId = form.get("projectId")?.toString() || ""
     const description = (form.get("description")?.toString() || "").slice(0, 2000)
+    const userId = form.get("userId")?.toString()
     const existingId = form.get("existingId")?.toString() || ""
 
     if (!file) {
@@ -102,9 +103,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: blob.url, document: updated[0], success: true, updated: true })
     } else {
       // Création d'un nouveau document
+      const uploaderId = userId ? Number(userId) : null
       const result = await sql`
         INSERT INTO documents (name, description, type, size, version, process_id, project_id, link_type, url, uploaded_by)
-        VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${projectId ? Number(projectId) : null}, ${linkType}, ${blob.url}, ${1})
+        VALUES (${file.name}, ${description || null}, ${file.type || "application/octet-stream"}, ${file.size}, ${"1.0"}, ${processId ? Number(processId) : null}, ${projectId ? Number(projectId) : null}, ${linkType}, ${blob.url}, ${uploaderId})
         RETURNING id, name, description, type, size, version, process_id, project_id, link_type, url, uploaded_by, uploaded_at
       `
 
