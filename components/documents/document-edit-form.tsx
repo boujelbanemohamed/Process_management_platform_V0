@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -26,7 +26,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [pendingVersionName, setPendingVersionName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     processId: "",
@@ -106,10 +106,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     }
   };
 
-  const triggerFileDialog = () => {
-    document.getElementById("version-upload")?.click();
-  };
-
   const handleFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -141,7 +137,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         clientPayload,
       });
 
-      // Mettre à jour l'état local pour refléter la nouvelle version
       setDoc((prev: any) => ({
         ...prev,
         name: file.name,
@@ -152,7 +147,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         uploadedAt: new Date(),
       }));
       setFormData(prev => ({ ...prev, name: file.name }));
-      setPendingVersionName(null); // On efface le nom en attente, car c'est fait
       
       toast({ title: "Nouvelle version téléversée", description: `${file.name} a été importé(e) avec succès.` });
       router.refresh();
@@ -164,8 +158,9 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       });
     } finally {
       setIsUploading(false);
-      const el = document.getElementById("version-upload") as HTMLInputElement | null;
-      if (el) el.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -215,15 +210,23 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
               <p>Version actuelle: <span className="font-medium">{doc.version}</span></p>
               <p>Dernière modification: {doc.uploadedAt.toLocaleDateString("fr-FR")}</p>
             </div>
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+            <div
+              className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => !isUploading && !isSaving && fileInputRef.current?.click()}
+            >
               <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm text-slate-600 mb-3">Télécharger une nouvelle version</p>
-              <Input type="file" className="hidden" id="version-upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onChange={handleFileSelected} />
-              <Button variant="outline" className="cursor-pointer bg-transparent" disabled={isUploading || isSaving} onClick={triggerFileDialog}>
-                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isUploading ? "Téléchargement..." : "Sélectionner un fichier"}
-              </Button>
-              {pendingVersionName && <div className="mt-3 text-left text-sm text-slate-700">Nouvelle version: <span className="font-medium">{pendingVersionName}</span></div>}
+              <Label htmlFor="version-upload" className="text-sm text-slate-600 mb-3 cursor-pointer">
+                {isUploading ? "Téléchargement en cours..." : "Télécharger une nouvelle version"}
+              </Label>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                id="version-upload"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={handleFileSelected}
+                disabled={isUploading || isSaving}
+              />
             </div>
             <div className="text-xs text-slate-500">
               <p>• La nouvelle version remplacera la version actuelle.</p>

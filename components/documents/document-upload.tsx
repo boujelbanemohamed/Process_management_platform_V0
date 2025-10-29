@@ -146,11 +146,23 @@ export function DocumentUpload() {
           <CardDescription>Choisissez les fichiers à importer (max 20 Mo par fichier)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
+          <div
+            className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-4">Glissez-déposez vos fichiers ou cliquez pour sélectionner</p>
-            <Input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} className="hidden" id="file-upload" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" />
-            <Button variant="outline" className="cursor-pointer bg-transparent" onClick={() => fileInputRef.current?.click()}>Sélectionner des fichiers</Button>
+            <Label htmlFor="file-upload" className="text-slate-600 mb-4 font-normal cursor-pointer">
+              Glissez-déposez vos fichiers ou <span className="text-slate-800 font-medium">cliquez pour sélectionner</span>
+            </Label>
+            <Input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="file-upload"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            />
           </div>
         </CardContent>
       </Card>
