@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, Loader2, CheckCircle } from "lucide-react";
 
 interface DocumentEditFormProps {
   documentId: string;
@@ -26,6 +26,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -69,6 +70,71 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     load();
   }, [documentId]);
 
+  const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "La taille du fichier ne doit pas dépasser 20 Mo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setPendingFile(file);
+  };
+
+  const handleUploadNewVersion = async () => {
+    if (!pendingFile || !user) return;
+
+    setIsUploading(true);
+    try {
+      const clientPayload = JSON.stringify({
+        userId: user.id,
+        processId: formData.processId,
+        description: formData.description,
+        existingId: documentId,
+        fileName: pendingFile.name,
+        contentType: pendingFile.type,
+        fileSize: pendingFile.size,
+      });
+
+      const newBlob = await upload(pendingFile.name, pendingFile, {
+        access: 'public',
+        handleUploadUrl: '/api/uploads',
+        clientPayload,
+      });
+
+      setDoc((prev: any) => ({
+        ...prev,
+        name: pendingFile.name,
+        version: (parseFloat(prev.version || "1.0") + 0.1).toFixed(1),
+        type: pendingFile.type,
+        size: pendingFile.size,
+        url: newBlob.url,
+        uploadedAt: new Date(),
+      }));
+      setFormData(prev => ({ ...prev, name: pendingFile.name }));
+      setPendingFile(null);
+
+      toast({ title: "Nouvelle version téléversée", description: `${pendingFile.name} a été importé(e) avec succès.` });
+      router.refresh();
+    } catch (error) {
+      setPendingFile(null);
+      toast({
+        title: "Échec de l'upload",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement...</span></div>;
   }
@@ -103,64 +169,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       toast({ title: "Erreur", description: (err as Error).message, variant: "destructive" });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    if (file.size > 20 * 1024 * 1024) {
-      toast({
-        title: "Fichier trop volumineux",
-        description: "La taille du fichier ne doit pas dépasser 20 Mo.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const clientPayload = JSON.stringify({
-        userId: user.id,
-        processId: formData.processId,
-        description: formData.description,
-        existingId: documentId,
-        fileName: file.name,
-        contentType: file.type,
-        fileSize: file.size,
-      });
-
-      const newBlob = await upload(file.name, file, {
-        access: 'public',
-        handleUploadUrl: '/api/uploads',
-        clientPayload,
-      });
-
-      setDoc((prev: any) => ({
-        ...prev,
-        name: file.name,
-        version: (parseFloat(prev.version || "1.0") + 0.1).toFixed(1),
-        type: file.type,
-        size: file.size,
-        url: newBlob.url,
-        uploadedAt: new Date(),
-      }));
-      setFormData(prev => ({ ...prev, name: file.name }));
-      
-      toast({ title: "Nouvelle version téléversée", description: `${file.name} a été importé(e) avec succès.` });
-      router.refresh();
-    } catch (error) {
-      toast({
-        title: "Échec de l'upload",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 
@@ -210,24 +218,44 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
               <p>Version actuelle: <span className="font-medium">{doc.version}</span></p>
               <p>Dernière modification: {doc.uploadedAt.toLocaleDateString("fr-FR")}</p>
             </div>
-            <div
-              className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => !isUploading && !isSaving && fileInputRef.current?.click()}
-            >
-              <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-              <Label htmlFor="version-upload" className="text-sm text-slate-600 mb-3 cursor-pointer">
-                {isUploading ? "Téléchargement en cours..." : "Télécharger une nouvelle version"}
-              </Label>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                id="version-upload"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                onChange={handleFileSelected}
-                disabled={isUploading || isSaving}
-              />
-            </div>
+
+            {!pendingFile ? (
+              <div
+                className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+                onClick={() => !isUploading && !isSaving && fileInputRef.current?.click()}
+              >
+                <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                <Label htmlFor="version-upload" className="text-sm text-slate-600 mb-3 cursor-pointer">
+                  Télécharger une nouvelle version
+                </Label>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  id="version-upload"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                  onChange={handleFileSelected}
+                  disabled={isUploading || isSaving}
+                />
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-green-300 bg-green-50 rounded-lg p-6 text-center">
+                <p className="text-sm text-green-700 mb-3">Fichier sélectionné :</p>
+                <p className="font-medium text-green-800">{pendingFile.name}</p>
+                <div className="mt-4 flex justify-center gap-2">
+                  <Button
+                    onClick={handleUploadNewVersion}
+                    disabled={isUploading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUploading ? "Confirmation..." : "Confirmer"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setPendingFile(null)}>Annuler</Button>
+                </div>
+              </div>
+            )}
+
             <div className="text-xs text-slate-500">
               <p>• La nouvelle version remplacera la version actuelle.</p>
               <p>• L'ancienne version sera conservée dans l'historique.</p>
