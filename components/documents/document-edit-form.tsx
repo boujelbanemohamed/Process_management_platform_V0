@@ -129,8 +129,8 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     if (!file) return
     try {
       setIsLoading(true)
-      if (file.size > 10 * 1024 * 1024) {
-        alert("Fichier trop volumineux (max 10 Mo)")
+      if (file.size > 20 * 1024 * 1024) {
+        alert("Fichier trop volumineux (max 20 Mo)")
         return
       }
       const fd = new FormData()
@@ -289,6 +289,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
               <p>• La nouvelle version remplacera la version actuelle</p>
               <p>• L'ancienne version sera conservée dans l'historique</p>
               <p>• Formats acceptés: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG</p>
+              <p>• Taille maximale du fichier : 20 Mo</p>
             </div>
           </CardContent>
         </Card>
