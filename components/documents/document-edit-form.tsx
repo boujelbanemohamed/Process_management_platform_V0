@@ -86,18 +86,12 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   };
 
   const handleUploadNewVersion = async () => {
-    console.log("🔵 Bouton Confirmer cliqué");
-    console.log("📁 Fichier:", pendingFile);
-    console.log("👤 User:", user);
-    console.log("👤 User ID:", user?.id);
-
     if (!pendingFile) {
-      console.log("❌ Pas de fichier");
+      toast({ title: "Aucun fichier sélectionné", description: "Veuillez sélectionner un fichier avant de confirmer.", variant: "destructive" });
       return;
     }
 
     if (!user?.id) {
-      console.log("❌ Pas de user:", user);
       toast({
         title: "Erreur d'authentification",
         description: "Votre session a peut-être expiré. Veuillez vous reconnecter.",
