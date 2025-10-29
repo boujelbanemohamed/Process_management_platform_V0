@@ -1,109 +1,135 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Upload, X, FileText, ArrowLeft } from "lucide-react"
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
+import { upload } from '@vercel/blob/client';
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Upload, X, FileText, ArrowLeft, Loader2 } from "lucide-react";
 
 interface UploadFile {
-  id: string
-  file: File
-  linkType: 'process' | 'project'
-  processId: string
-  projectId: string
-  description: string
+  id: string;
+  file: File;
+  linkType: 'process' | 'project';
+  processId: string;
+  projectId: string;
+  description: string;
 }
 
 export function DocumentUpload() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const [files, setFiles] = useState<UploadFile[]>([])
-  const [isUploading, setIsUploading] = useState(false)
-  const [processes, setProcesses] = useState<Array<{ id: number | string; name: string }>>([])
-  const [projects, setProjects] = useState<Array<{ id: number | string; name: string }>>([])
-  const [loadingProcesses, setLoadingProcesses] = useState(false)
-  const [loadingProjects, setLoadingProjects] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [files, setFiles] = useState<UploadFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [processes, setProcesses] = useState<Array<{ id: number | string; name: string }>>([]);
+  const [projects, setProjects] = useState<Array<{ id: number | string; name: string }>>([]);
+  const [loadingProcesses, setLoadingProcesses] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const fetchSelectData = async () => {
-      setLoadingProcesses(true)
-      setLoadingProjects(true)
+      setLoadingProcesses(true);
+      setLoadingProjects(true);
       try {
         const [processesRes, projectsRes] = await Promise.all([
           fetch("/api/processes"),
           fetch("/api/projects"),
         ]);
         if (processesRes.ok) {
-          const data = await processesRes.json()
-          setProcesses(Array.isArray(data) ? data.map((p: any) => ({ id: p.id, name: p.name })) : [])
+          const data = await processesRes.json();
+          setProcesses(Array.isArray(data) ? data.map((p: any) => ({ id: p.id, name: p.name })) : []);
         }
         if (projectsRes.ok) {
-          const data = await projectsRes.json()
-          setProjects(Array.isArray(data) ? data.map((p: any) => ({ id: p.id, name: p.name })) : [])
+          const data = await projectsRes.json();
+          setProjects(Array.isArray(data) ? data.map((p: any) => ({ id: p.id, name: p.name })) : []);
         }
       } catch (e) {
-        console.error("Erreur chargement données:", e)
+        console.error("Erreur chargement données:", e);
       } finally {
-        setLoadingProcesses(false)
-        setLoadingProjects(false)
+        setLoadingProcesses(false);
+        setLoadingProjects(false);
       }
-    }
-    fetchSelectData()
-  }, [])
+    };
+    fetchSelectData();
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(event.target.files || []).map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      linkType: 'process' as 'process' | 'project',
-      processId: "",
-      projectId: "",
-      description: "",
-    }))
-    setFiles(prev => [...prev, ...newFiles])
-  }
+    const newFiles = Array.from(event.target.files || []).map(file => {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: `${file.name} dépasse la limite de 20 Mo et ne sera pas ajouté.`,
+          variant: "destructive",
+        });
+        return null;
+      }
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        linkType: 'process' as 'process' | 'project',
+        processId: "",
+        projectId: "",
+        description: "",
+      };
+    }).filter(Boolean) as UploadFile[];
+    setFiles(prev => [...prev, ...newFiles]);
+  };
 
   const handleUpload = async () => {
-    if (files.length === 0 || !user) return
-    setIsUploading(true)
+    if (files.length === 0 || !user) return;
+    setIsUploading(true);
 
-    let successCount = 0
+    let successCount = 0;
     for (const f of files) {
       try {
-        const fd = new FormData()
-        fd.append('file', f.file)
-        fd.append('linkType', f.linkType)
-        fd.append('processId', f.processId)
-        fd.append('projectId', f.projectId)
-        fd.append('description', f.description)
-        fd.append('userId', user.id)
+        const clientPayload = JSON.stringify({
+          userId: user.id,
+          linkType: f.linkType,
+          processId: f.processId,
+          projectId: f.projectId,
+          description: f.description,
+          fileName: f.file.name,
+          contentType: f.file.type,
+          fileSize: f.file.size,
+        });
 
-        const res = await fetch('/api/uploads', { method: 'POST', body: fd })
+        const newBlob = await upload(f.file.name, f.file, {
+          access: 'public',
+          handleUploadUrl: '/api/uploads',
+          clientPayload,
+        });
 
-        if (res.ok) {
-          successCount++
-        } else {
-          toast.error(`Échec de l'import pour le fichier : ${f.file.name}`)
+        if (newBlob) {
+          successCount++;
         }
       } catch (error) {
-        toast.error(`Une erreur s'est produite lors de l'import du fichier : ${f.file.name}`)
+        toast({
+          title: `Échec de l'import pour ${f.file.name}`,
+          description: (error as Error).message,
+          variant: "destructive",
+        });
       }
     }
 
-    setIsUploading(false)
+    setIsUploading(false);
     if (successCount > 0) {
-      toast.success(`${successCount} document(s) importé(s) avec succès !`)
-      setFiles([])
-      router.push('/documents')
+      toast({
+        title: "Importation réussie",
+        description: `${successCount} document(s) importé(s) avec succès !`,
+      });
+      setFiles([]);
+      router.push('/documents');
+      router.refresh();
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -117,7 +143,7 @@ export function DocumentUpload() {
       <Card className="border-slate-200">
         <CardHeader>
           <CardTitle className="text-slate-800">Sélection des fichiers</CardTitle>
-          <CardDescription>Choisissez les fichiers à importer (max 20 Mo)</CardDescription>
+          <CardDescription>Choisissez les fichiers à importer (max 20 Mo par fichier)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
@@ -186,6 +212,7 @@ export function DocumentUpload() {
             <div className="flex justify-end space-x-4 mt-6">
               <Button variant="outline" onClick={() => router.back()}>Annuler</Button>
               <Button onClick={handleUpload} disabled={isUploading || files.some(f => (f.linkType === 'process' && !f.processId) || (f.linkType === 'project' && !f.projectId))} className="bg-slate-800 hover:bg-slate-700">
+                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isUploading ? "Import en cours..." : `Importer ${files.length} fichier(s)`}
               </Button>
             </div>
@@ -193,5 +220,5 @@ export function DocumentUpload() {
         </Card>
       )}
     </div>
-  )
+  );
 }
