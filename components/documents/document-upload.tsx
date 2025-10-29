@@ -73,8 +73,10 @@ export function DocumentUpload() {
   const handleUpload = async () => {
     if (files.length === 0 || !user) return
     setIsUploading(true)
-    try {
-      await Promise.all(files.map(f => {
+
+    let successCount = 0
+    for (const f of files) {
+      try {
         const fd = new FormData()
         fd.append('file', f.file)
         fd.append('linkType', f.linkType)
@@ -82,17 +84,24 @@ export function DocumentUpload() {
         fd.append('projectId', f.projectId)
         fd.append('description', f.description)
         fd.append('userId', user.id)
-        return fetch('/api/uploads', { method: 'POST', body: fd }).then(res => {
-          if (!res.ok) throw new Error('Échec de téléversement')
-        })
-      }))
+
+        const res = await fetch('/api/uploads', { method: 'POST', body: fd })
+
+        if (res.ok) {
+          successCount++
+        } else {
+          toast.error(`Échec de l'import pour le fichier : ${f.file.name}`)
+        }
+      } catch (error) {
+        toast.error(`Une erreur s'est produite lors de l'import du fichier : ${f.file.name}`)
+      }
+    }
+
+    setIsUploading(false)
+    if (successCount > 0) {
+      toast.success(`${successCount} document(s) importé(s) avec succès !`)
       setFiles([])
       router.push('/documents')
-    } catch (e) {
-      console.error('Erreur upload:', e)
-      alert("Erreur lors de l'import des documents. Veuillez réessayer.")
-    } finally {
-      setIsUploading(false)
     }
   }
 
