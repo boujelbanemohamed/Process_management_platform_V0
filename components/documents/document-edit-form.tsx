@@ -86,7 +86,13 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   };
 
   const handleUploadNewVersion = async () => {
-    if (!pendingFile || !user) return;
+    console.log("Le bouton Confirmer a été cliqué.");
+    console.log("Fichier en attente:", pendingFile);
+
+    if (!pendingFile || !user) {
+      console.error("Aucun fichier en attente ou utilisateur non authentifié.");
+      return;
+    }
 
     setIsUploading(true);
     try {
