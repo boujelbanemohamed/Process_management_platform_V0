@@ -249,7 +249,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
                     className="bg-green-600 hover:bg-green-700"
                   >
                     {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? "Confirmation..." : "Confirmer"}
+                    {isUploading ? "Téléversement..." : "Confirmer"}
                   </Button>
                   <Button variant="ghost" onClick={() => setPendingFile(null)}>Annuler</Button>
                 </div>
