@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "app/api/uploads/route.js": {
+      "maxDuration": 60,
+      "requestBody": "21mb"
+    }
+  }
+}
