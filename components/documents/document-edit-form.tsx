@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Upload, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react";
 
 interface DocumentEditFormProps {
   documentId: string;
@@ -19,7 +19,7 @@ interface DocumentEditFormProps {
 export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [doc, setDoc] = useState<any | null>(null);
   const [processes, setProcesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +33,15 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     processId: "",
     description: "",
   });
+
+  useEffect(() => {
+    console.log('🟣 Composant EditDocument monté');
+    console.log('🟣 User au chargement:', user);
+  }, []);
+
+  useEffect(() => {
+    console.log('🟣 User a changé:', user);
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -72,7 +81,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    console.log('📎 Fichier sélectionné:', file);
+    if (!file) {
+      setPendingFile(null);
+      return;
+    }
 
     if (file.size > 20 * 1024 * 1024) {
       toast({
@@ -80,27 +93,34 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         description: "La taille du fichier ne doit pas dépasser 20 Mo.",
         variant: "destructive",
       });
+      setPendingFile(null);
       return;
     }
     setPendingFile(file);
   };
 
   const handleUploadNewVersion = async () => {
+    console.log('🟢 === DÉBUT handleUploadNewVersion ===');
+    console.log('📁 Fichier en attente:', pendingFile);
+    console.log('👤 User:', user);
+    console.log('👤 User ID:', user?.id);
+
     if (!pendingFile) {
-      toast({ title: "Aucun fichier sélectionné", description: "Veuillez sélectionner un fichier avant de confirmer.", variant: "destructive" });
+      console.log('❌ ERREUR: Aucun fichier sélectionné');
+      alert('Veuillez sélectionner un fichier');
       return;
     }
 
     if (!user?.id) {
-      toast({
-        title: "Erreur d'authentification",
-        description: "Votre session a peut-être expiré. Veuillez vous reconnecter.",
-        variant: "destructive",
-      });
+      console.log('❌ ERREUR: User ID manquant');
+      console.log('User complet:', JSON.stringify(user));
+      alert('Erreur d\'authentification');
       return;
     }
 
+    console.log('✅ Validations OK - Préparation de l\'upload');
     setIsUploading(true);
+
     try {
       const clientPayload = JSON.stringify({
         userId: user.id,
@@ -112,11 +132,13 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         fileSize: pendingFile.size,
       });
 
+      console.log('📤 Envoi de la requête...');
       const newBlob = await upload(pendingFile.name, pendingFile, {
         access: 'public',
         handleUploadUrl: '/api/uploads',
         clientPayload,
       });
+      console.log('📥 Réponse reçue:', newBlob);
 
       setDoc((prev: any) => ({
         ...prev,
@@ -130,9 +152,12 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       setFormData(prev => ({ ...prev, name: pendingFile.name }));
       setPendingFile(null);
 
+      console.log('✅ Upload réussi:', newBlob);
       toast({ title: "Nouvelle version téléversée", description: `${pendingFile.name} a été importé(e) avec succès.` });
       router.refresh();
+
     } catch (error) {
+      console.error('❌ ERREUR lors de l\'upload:', error);
       setPendingFile(null);
       toast({
         title: "Échec de l'upload",
@@ -145,9 +170,10 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         fileInputRef.current.value = "";
       }
     }
+    console.log('🟢 === FIN handleUploadNewVersion ===');
   };
 
-  if (loading) {
+  if (loading || isAuthLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement...</span></div>;
   }
   if (error) {
@@ -256,6 +282,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
                 <p className="font-medium text-green-800">{pendingFile.name}</p>
                 <div className="mt-4 flex justify-center gap-2">
                   <Button
+                    type="button"
                     onClick={handleUploadNewVersion}
                     disabled={isUploading}
                     className="bg-green-600 hover:bg-green-700"
