@@ -1,125 +1,86 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { useState, useEffect, createContext, useContext } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from "@/types";
 
-// --- AuthService ---
-// (Aucun changement ici, la classe AuthService reste la même)
-export class AuthService {
-  private static currentUser: User | null = null;
-
-  static async login(email: string, password: string): Promise<User | null> {
-    try {
-      console.log("🔐 Tentative de connexion pour:", email);
-      const response = await fetch(`/api/users?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
-      const data = await response.json();
-      console.log("📥 Réponse de connexion:", response.status, data);
-      if (response.ok && data.success) {
-        const user = data.user;
-        this.currentUser = user;
-        // Standardisation de la clé
-        localStorage.setItem("user-session", JSON.stringify(user));
-        console.log("✅ Connexion réussie:", user);
-        return user;
-      } else {
-        console.error("❌ Échec de connexion:", data.error);
-        return null;
-      }
-    } catch (error) {
-      console.error("❌ Erreur lors de la connexion:", error);
-      return null;
-    }
-  }
-
-  static logout(): void {
-    this.currentUser = null;
-    localStorage.removeItem("user-session");
-  }
-
-  static getCurrentUser(): User | null {
-    if (this.currentUser) return this.currentUser;
-
-    if (typeof window !== "undefined") {
-      // Standardisation de la clé
-      const stored = localStorage.getItem("user-session");
-      if (stored) {
-        try {
-          this.currentUser = JSON.parse(stored);
-          return this.currentUser;
-        } catch (e) {
-          console.error("Erreur d'analyse de la session utilisateur:", e);
-          localStorage.removeItem("user-session");
-          return null;
-        }
-      }
-    }
-    return null;
-  }
-
-  static isAuthenticated(): boolean {
-    return this.getCurrentUser() !== null;
-  }
-
-  static hasPermission(action: "read" | "write" | "admin"): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    switch (action) {
-      case "read": return ["reader", "contributor", "admin"].includes(user.role);
-      case "write": return ["contributor", "admin"].includes(user.role);
-      case "admin": return user.role === "admin";
-      default: return false;
-    }
-  }
-}
-
-// --- AuthContext ---
-const AuthContext = createContext<{
+interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  isLoading: boolean;
-} | null>(null);
+}
 
-// --- AuthProvider ---
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Correction ici : Initialiser l'état directement depuis le localStorage.
-  // Cela garantit que la valeur est disponible dès le premier rendu.
-  const [user, setUser] = useState<User | null>(() => AuthService.getCurrentUser());
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect est toujours utile pour les cas où la session change dans un autre onglet,
-  // mais l'état initial est désormais correct.
+  // Restaurer le user au chargement initial
   useEffect(() => {
-    const currentUser = AuthService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
+    console.log('🔵 AuthProvider - Initialisation');
+    try {
+      // Clé de session standardisée
+      const savedUser = localStorage.getItem('user-session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        console.log('🔵 User restauré depuis localStorage:', parsed);
+        setUser(parsed);
+      } else {
+        console.log('🔵 Aucun user dans localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la restauration du user:', error);
+      localStorage.removeItem('user-session');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const loggedInUser = await AuthService.login(email, password);
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      return true;
+    console.log('🔐 Tentative de connexion pour:', email);
+    try {
+      const response = await fetch(
+        `/api/users?action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+      );
+      console.log('📥 Réponse de connexion:', response.status);
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const userData = data.user;
+        console.log('✅ Connexion réussie:', userData);
+        setUser(userData);
+        // Sauvegarder dans localStorage avec la clé standardisée
+        localStorage.setItem('user-session', JSON.stringify(userData));
+        return true;
+      } else {
+        console.error('❌ Échec de connexion:', data.error);
+        return false;
+      }
+    } catch (error) {
+       console.error('❌ Erreur lors de la connexion:', error);
+       return false;
     }
-    return false;
   };
 
   const logout = () => {
-    AuthService.logout();
+    console.log('🔓 Déconnexion');
     setUser(null);
+    // Nettoyer le localStorage avec la clé standardisée
+    localStorage.removeItem('user-session');
   };
 
-  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-// --- useAuth Hook ---
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
