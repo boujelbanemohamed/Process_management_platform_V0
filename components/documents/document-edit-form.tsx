@@ -37,47 +37,53 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   useEffect(() => {
     console.log('🟣 Composant EditDocument monté');
     console.log('🟣 User au chargement:', user);
+    console.log('🟣 isLoading:', isAuthLoading);
   }, []);
 
   useEffect(() => {
     console.log('🟣 User a changé:', user);
-  }, [user]);
+    console.log('🟣 isLoading a changé:', isAuthLoading);
+  }, [user, isAuthLoading]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const resDoc = await fetch(`/api/documents?id=${documentId}`);
-        if (!resDoc.ok) throw new Error("Erreur lors du chargement du document");
-        const data = await resDoc.json();
-        const normalized: any = {
-          ...data,
-          id: String(data.id),
-          name: data.name || "Sans nom",
-          uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
-          uploadedBy: String(data.uploaded_by || 1),
-          processId: data.process_id ? String(data.process_id) : "",
-          version: data.version || "1.0",
-          type: data.type || "unknown",
-          url: data.url || "#",
-          description: data.description || "",
-        };
-        setDoc(normalized);
-        setFormData({ name: normalized.name, processId: normalized.processId, description: normalized.description });
+    // Ne charge les données du document que si l'utilisateur est authentifié.
+    // La vérification !isAuthLoading && user garantit que nous avons un état d'auth final.
+    if (!isAuthLoading && user) {
+      const load = async () => {
+        try {
+          setLoading(true);
+          const resDoc = await fetch(`/api/documents?id=${documentId}`);
+          if (!resDoc.ok) throw new Error("Erreur lors du chargement du document");
+          const data = await resDoc.json();
+          const normalized: any = {
+            ...data,
+            id: String(data.id),
+            name: data.name || "Sans nom",
+            uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
+            uploadedBy: String(data.uploaded_by || 1),
+            processId: data.process_id ? String(data.process_id) : "",
+            version: data.version || "1.0",
+            type: data.type || "unknown",
+            url: data.url || "#",
+            description: data.description || "",
+          };
+          setDoc(normalized);
+          setFormData({ name: normalized.name, processId: normalized.processId, description: normalized.description });
 
-        const resProc = await fetch(`/api/processes`);
-        if (resProc.ok) {
-          const procs = await resProc.json();
-          setProcesses(Array.isArray(procs) ? procs : []);
+          const resProc = await fetch(`/api/processes`);
+          if (resProc.ok) {
+            const procs = await resProc.json();
+            setProcesses(Array.isArray(procs) ? procs : []);
+          }
+        } catch (e: any) {
+          setError(e?.message || "Erreur inconnue");
+        } finally {
+          setLoading(false);
         }
-      } catch (e: any) {
-        setError(e?.message || "Erreur inconnue");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [documentId]);
+      };
+      load();
+    }
+  }, [documentId, user, isAuthLoading]); // Dépend de l'état d'authentification
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,15 +179,41 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     console.log('🟢 === FIN handleUploadNewVersion ===');
   };
 
-  if (loading || isAuthLoading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement...</span></div>;
+  // Logique de rendu améliorée
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Vérification de l'authentification...</span>
+      </div>
+    );
   }
+
+  if (!user) {
+    console.log('❌ Pas de user après loading - Redirection vers la page de connexion');
+    // Idéalement, utiliser un composant Redirect ou le router de Next.js
+    // Pour cet exemple, un simple message suffit.
+    // router.push('/login'); // Décommenter pour une redirection automatique
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">Vous n'êtes pas authentifié.</p>
+        <Button onClick={() => router.push('/login')}>Se connecter</Button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement du document...</span></div>;
+  }
+
   if (error) {
     return <div className="text-center py-8"><p className="text-red-500 mb-4">Erreur: {error}</p><Button onClick={() => router.refresh()}>Réessayer</Button></div>;
   }
+
   if (!doc) {
     return <div className="text-center py-8"><p className="text-slate-500">Document non trouvé</p></div>;
   }
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
