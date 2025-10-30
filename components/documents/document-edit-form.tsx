@@ -86,11 +86,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   };
 
   const handleUploadNewVersion = async () => {
-    console.log("🔵 Bouton Confirmer cliqué");
-    console.log("📁 Fichier:", pendingFile);
-    console.log("👤 User:", user);
-    console.log("👤 User ID:", user?.id);
-
     if (!pendingFile) {
       toast({ title: "Aucun fichier sélectionné", description: "Veuillez sélectionner un fichier avant de confirmer.", variant: "destructive" });
       return;
