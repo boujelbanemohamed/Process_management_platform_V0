@@ -22,12 +22,19 @@ export async function POST(request: NextRequest) {
         const payload = JSON.parse(clientPayload || '{}');
         const { userId } = payload;
 
+        // Vérification de la configuration du token
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          throw new Error('Le token Vercel Blob n\'est pas configuré côté serveur.');
+        }
+
         // Sécurité : On s'assure qu'un utilisateur est bien identifié.
         if (!userId) {
           throw new Error('Authentification requise pour téléverser.');
         }
 
         return {
+          // Permet de remplacer un fichier existant avec le même `pathname`.
+          allowOverwrite: true,
           allowedContentTypes: [
             'application/pdf',
             'application/msword',
