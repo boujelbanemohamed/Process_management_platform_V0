@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { upload } from '@vercel/blob/client';
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,6 @@ import { Upload, X, FileText, ArrowLeft, Loader2 } from "lucide-react";
 interface UploadFile {
   id: string;
   file: File;
-  version: string; // Ajout du champ version
   linkType: 'process' | 'project';
   processId: string;
   projectId: string;
@@ -26,6 +25,7 @@ interface UploadFile {
 export function DocumentUpload() {
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [processes, setProcesses] = useState<Array<{ id: number | string; name: string }>>([]);
@@ -53,7 +53,6 @@ export function DocumentUpload() {
         }
       } catch (e) {
         console.error("Erreur chargement données:", e);
-        toast.error("Erreur lors du chargement des processus et projets.");
       } finally {
         setLoadingProcesses(false);
         setLoadingProjects(false);
@@ -65,15 +64,16 @@ export function DocumentUpload() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(event.target.files || []).map(file => {
       if (file.size > 20 * 1024 * 1024) {
-        toast.error("Fichier trop volumineux", {
-          description: `${file.name} dépasse la limite de 20 Mo.`,
+        toast({
+          title: "Fichier trop volumineux",
+          description: `${file.name} dépasse la limite de 20 Mo et ne sera pas ajouté.`,
+          variant: "destructive",
         });
         return null;
       }
       return {
         id: Math.random().toString(36).substr(2, 9),
         file,
-        version: "", // Initialisé à vide
         linkType: 'process' as 'process' | 'project',
         processId: "",
         projectId: "",
@@ -83,30 +83,15 @@ export function DocumentUpload() {
     setFiles(prev => [...prev, ...newFiles]);
   };
 
-  const isUploadButtonDisabled = isUploading || files.some(f =>
-    !f.version ||
-    ((f.linkType === 'process' && !f.processId) || (f.linkType === 'project' && !f.projectId))
-  );
-
   const handleUpload = async () => {
     if (files.length === 0 || !user) return;
-
-    // Validation avant l'upload
-    for (const f of files) {
-      if (!f.version) {
-        toast.error(`Le champ version est obligatoire pour ${f.file.name}.`);
-        return;
-      }
-    }
-
     setIsUploading(true);
-    let successCount = 0;
 
+    let successCount = 0;
     for (const f of files) {
       try {
         const clientPayload = JSON.stringify({
           userId: user.id,
-          version: f.version,
           linkType: f.linkType,
           processId: f.processId,
           projectId: f.projectId,
@@ -126,15 +111,20 @@ export function DocumentUpload() {
           successCount++;
         }
       } catch (error) {
-        toast.error(`Échec de l'import pour ${f.file.name}`, {
-          description: (error as Error).message
+        toast({
+          title: `Échec de l'import pour ${f.file.name}`,
+          description: (error as Error).message,
+          variant: "destructive",
         });
       }
     }
 
     setIsUploading(false);
     if (successCount > 0) {
-      toast.success(`${successCount} document(s) importé(s) avec succès !`);
+      toast({
+        title: "Importation réussie",
+        description: `${successCount} document(s) importé(s) avec succès !`,
+      });
       setFiles([]);
       router.push('/documents');
       router.refresh();
@@ -197,17 +187,7 @@ export function DocumentUpload() {
                     <Button variant="ghost" size="sm" onClick={() => setFiles(files.filter(file => file.id !== f.id))} className="text-red-500 hover:text-red-700"><X className="h-4 w-4" /></Button>
                   </div>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor={`version-${f.id}`}>Version *</Label>
-                        <Input
-                          id={`version-${f.id}`}
-                          value={f.version}
-                          onChange={e => setFiles(files.map(file => file.id === f.id ? { ...file, version: e.target.value } : file))}
-                          placeholder="Ex: 1.0, 2024-Q1..."
-                        />
-                         {!f.version && <p className="text-red-500 text-xs mt-1">Le champ version est obligatoire.</p>}
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label>Type de liaison</Label>
                         <select value={f.linkType} onChange={e => setFiles(files.map(file => file.id === f.id ? { ...file, linkType: e.target.value as any, processId: '', projectId: '' } : file))} className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm">
@@ -217,7 +197,7 @@ export function DocumentUpload() {
                       </div>
                       {f.linkType === 'process' ? (
                         <div>
-                          <Label>Processus associé *</Label>
+                          <Label>Processus associé</Label>
                           <select value={f.processId} onChange={e => setFiles(files.map(file => file.id === f.id ? { ...file, processId: e.target.value } : file))} className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm" disabled={loadingProcesses}>
                             <option value="">{loadingProcesses ? "Chargement..." : "Sélectionner"}</option>
                             {processes.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -225,7 +205,7 @@ export function DocumentUpload() {
                         </div>
                       ) : (
                         <div>
-                          <Label>Projet associé *</Label>
+                          <Label>Projet associé</Label>
                           <select value={f.projectId} onChange={e => setFiles(files.map(file => file.id === f.id ? { ...file, projectId: e.target.value } : file))} className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm" disabled={loadingProjects}>
                             <option value="">{loadingProjects ? "Chargement..." : "Sélectionner"}</option>
                             {projects.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -243,7 +223,7 @@ export function DocumentUpload() {
             </div>
             <div className="flex justify-end space-x-4 mt-6">
               <Button variant="outline" onClick={() => router.back()}>Annuler</Button>
-              <Button onClick={handleUpload} disabled={isUploadButtonDisabled} className="bg-slate-800 hover:bg-slate-700">
+              <Button onClick={handleUpload} disabled={isUploading || files.some(f => (f.linkType === 'process' && !f.processId) || (f.linkType === 'project' && !f.projectId))} className="bg-slate-800 hover:bg-slate-700">
                 {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isUploading ? "Import en cours..." : `Importer ${files.length} fichier(s)`}
               </Button>
