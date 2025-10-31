@@ -111,7 +111,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       toast.success("✅ Nouvelle version téléversée avec succès.");
       setPendingFile(null);
       setNewVersion("");
-      router.refresh(); // Recharger les données pour voir la nouvelle version
+
+      // Retarder le refresh pour laisser le temps au toast de s'afficher
+      setTimeout(() => {
+        router.refresh(); // Recharger les données pour voir la nouvelle version
+      }, 1000);
 
     } catch (error) {
       toast.error("❌ Une erreur est survenue pendant le téléversement.", {
@@ -140,7 +144,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       if (!response.ok) throw new Error("Erreur lors de la sauvegarde des informations");
 
       toast.success("Modifications enregistrées");
-      router.refresh();
+
+      // Retarder le refresh pour éviter les conflits de rendu
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
 
     } catch (err) {
       toast.error("Erreur", { description: (err as Error).message });

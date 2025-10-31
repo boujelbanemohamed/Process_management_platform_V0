@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "Plateforme de Gestion des Processus",
   description: "Plateforme de gestion des processus organisationnels",
   generator: "v0.app",
+  icons: {
+    icon: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({
