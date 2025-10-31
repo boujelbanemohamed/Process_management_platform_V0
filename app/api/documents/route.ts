@@ -7,87 +7,101 @@ function getSql() {
   return neon(url)
 }
 
+// Fonction pour initialiser le schéma de la base de données pour les documents
+async function initSchema(sql: any) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS documents (
+      id BIGSERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      process_id BIGINT,
+      project_id BIGINT,
+      link_type VARCHAR(20) DEFAULT 'process',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_by BIGINT REFERENCES users(id)
+    )
+  `
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS document_versions (
+      id BIGSERIAL PRIMARY KEY,
+      document_id BIGINT REFERENCES documents(id) ON DELETE CASCADE,
+      version VARCHAR(50) NOT NULL,
+      url VARCHAR(500) NOT NULL,
+      type VARCHAR(100),
+      size BIGINT,
+      uploaded_by BIGINT REFERENCES users(id),
+      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `
+
+  // Migrations douces pour s'assurer que les nouvelles colonnes/tables sont conformes
+  await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id)`
+  await sql`ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS type VARCHAR(100)`
+  await sql`ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS size BIGINT`
+}
+
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const processId = searchParams.get('processId')
     const projectId = searchParams.get('projectId')
-    const type = searchParams.get('type')
     
     const sql = getSql()
-    // S'assurer que la table existe
-    await sql`
-      CREATE TABLE IF NOT EXISTS documents (
-        id BIGSERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        type VARCHAR(50),
-        size BIGINT,
-        version VARCHAR(20),
-        uploaded_by BIGINT,
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        process_id BIGINT,
-        project_id BIGINT,
-        link_type VARCHAR(20) DEFAULT 'process',
-        url VARCHAR(500)
-      )
-    `
-    // Migration douce: s'assurer que les colonnes existent
-    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS description TEXT`
-    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS project_id BIGINT`
-    await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS link_type VARCHAR(20) DEFAULT 'process'`
-    
+    await initSchema(sql);
+
     let rows: any[] = []
+
+    // Si un ID de document est fourni, récupérer le document et toutes ses versions
     if (id) {
-      rows = await sql`
-        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
+      const docResult = await sql`
+        SELECT d.*, u.name as created_by_name
         FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        LEFT JOIN processes p ON d.process_id = p.id
+        LEFT JOIN users u ON d.created_by = u.id
         WHERE d.id = ${Number(id)}
       `
-      if (rows.length === 0) {
+      if (docResult.length === 0) {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
       }
-      return NextResponse.json(rows[0])
+
+      const versionsResult = await sql`
+        SELECT dv.*, u.name as uploaded_by_name
+        FROM document_versions dv
+        LEFT JOIN users u ON dv.uploaded_by = u.id
+        WHERE dv.document_id = ${Number(id)}
+        ORDER BY dv.uploaded_at DESC
+      `
+
+      const documentWithVersions = {
+        ...docResult[0],
+        versions: versionsResult,
+      };
+
+      return NextResponse.json(documentWithVersions)
     }
-    if (processId) {
-      rows = await sql`
-        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
-        FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        LEFT JOIN processes p ON d.process_id = p.id
-        WHERE d.process_id = ${Number(processId)}
-        ORDER BY d.uploaded_at DESC
-      `
-    } else if (projectId) {
-      rows = await sql`
-        SELECT d.*, u.name as uploaded_by_name, pr.name as project_name
-        FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        LEFT JOIN projects pr ON d.project_id = pr.id
-        WHERE d.project_id = ${Number(projectId)} AND d.link_type = 'project'
-        ORDER BY d.uploaded_at DESC
-      `
-    } else if (type) {
-      rows = await sql`
-        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
-        FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        LEFT JOIN processes p ON d.process_id = p.id
-        WHERE d.type = ${type}
-        ORDER BY d.uploaded_at DESC
-      `
-    } else {
-      rows = await sql`
-        SELECT d.*, u.name as uploaded_by_name, p.name as process_name
-        FROM documents d
-        LEFT JOIN users u ON d.uploaded_by = u.id
-        LEFT JOIN processes p ON d.process_id = p.id
-        ORDER BY d.uploaded_at DESC
-      `
-    }
+
+    // Logique existante pour lister les documents (simplifiée pour retourner la dernière version)
+    // NOTE: Cette partie devra être adaptée pour afficher correctement les listes
+    const listQuery = `
+      SELECT d.id, d.name, d.description, d.process_id,
+             dv.version, dv.uploaded_at, u.name as uploaded_by_name,
+             p.name as process_name
+      FROM documents d
+      JOIN (
+        SELECT document_id, MAX(uploaded_at) as last_upload
+        FROM document_versions
+        GROUP BY document_id
+      ) latest_version ON d.id = latest_version.document_id
+      JOIN document_versions dv ON d.id = dv.document_id AND dv.uploaded_at = latest_version.last_upload
+      LEFT JOIN users u ON dv.uploaded_by = u.id
+      LEFT JOIN processes p ON d.process_id = p.id
+      ${processId ? `WHERE d.process_id = ${Number(processId)}` : ''}
+      ${projectId ? `WHERE d.project_id = ${Number(projectId)} AND d.link_type = 'project'` : ''}
+      ORDER BY dv.uploaded_at DESC
+    `
+    rows = await sql.unsafe(listQuery);
 
     return NextResponse.json(rows)
   } catch (error) {
@@ -96,56 +110,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const { name, description, type, size, version, uploadedBy, processId, url } = await request.json()
-    
-    if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
-    }
-    
-    const sql = getSql()
-    
-    // Utiliser l'ID 1 par défaut si uploadedBy n'est pas fourni
-    const userId = uploadedBy || 1
-    
-    const result = await sql`
-      INSERT INTO documents (name, description, type, size, version, uploaded_by, process_id, url)
-      VALUES (${name}, ${description || null}, ${type || null}, ${size || null}, ${version || null}, ${userId}, ${processId || null}, ${url || null})
-      RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
-    `
-    
-    return NextResponse.json(result[0], { status: 201 })
-  } catch (error) {
-    console.error("Error creating document:", error)
-    return NextResponse.json({ error: "Failed to create document" }, { status: 500 })
-  }
-}
-
+// Le POST et le PUT seront gérés par /api/uploads, qui crée le document et la première version.
+// On garde le PUT ici pour les mises à jour de métadonnées du document principal.
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
-    console.log("PUT /api/documents body:", JSON.stringify(body, null, 2))
-    
-    const { id, name, description, processId } = body
+    const { id, name, description, processId } = await request.json()
     
     if (!id) {
       return NextResponse.json({ error: "Document ID is required" }, { status: 400 })
     }
     
     const sql = getSql()
-    console.log("Updating document ID:", id, "name:", name, "description:", description, "processId:", processId)
-
-    // Mise à jour simple sans les champs optionnels
     const result = await sql`
       UPDATE documents 
-      SET name = ${name || ''}, 
-          description = ${description || null}
+      SET
+        name = COALESCE(${name}, name),
+        description = COALESCE(${description}, description),
+        process_id = COALESCE(${processId ? Number(processId) : null}, process_id)
       WHERE id = ${Number(id)}
-      RETURNING id, name, description, type, size, version, uploaded_by, uploaded_at, process_id, url
+      RETURNING *
     `
-    
-    console.log("Update result:", result)
     
     if (result.length === 0) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
@@ -153,15 +137,7 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(result[0])
   } catch (error: any) {
-    console.error("Error updating document:", error)
-    console.error("Error message:", error.message)
-    console.error("Error code:", error.code)
-    console.error("Error stack:", error.stack)
-    return NextResponse.json({ 
-      error: "Failed to update document", 
-      details: error.message,
-      code: error.code
-    }, { status: 500 })
+    return NextResponse.json({ error: "Failed to update document", details: error.message }, { status: 500 })
   }
 }
 
@@ -175,10 +151,10 @@ export async function DELETE(request: NextRequest) {
     }
     
     const sql = getSql()
-    
+    // La suppression en cascade s'occupera des versions
     const result = await sql`
       DELETE FROM documents 
-      WHERE id = ${id}
+      WHERE id = ${Number(id)}
       RETURNING id, name
     `
     
