@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 
 interface DocumentEditFormProps {
   documentId: string;
@@ -20,12 +20,14 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [doc, setDoc] = useState<any | null>(null);
+  const [latestVersion, setLatestVersion] = useState<any | null>(null);
   const [processes, setProcesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [newVersion, setNewVersion] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +36,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   });
 
   useEffect(() => {
-    // Ne charge les données du document que si l'utilisateur est authentifié.
     if (!isAuthLoading && user) {
       const load = async () => {
         try {
@@ -42,25 +43,17 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
           const resDoc = await fetch(`/api/documents?id=${documentId}`);
           if (!resDoc.ok) throw new Error("Erreur lors du chargement du document");
           const data = await resDoc.json();
-          const normalized: any = {
-            ...data,
-            id: String(data.id),
-            name: data.name || "Sans nom",
-            uploadedAt: data.uploaded_at ? new Date(data.uploaded_at) : new Date(),
-            uploadedBy: String(data.uploaded_by || 1),
-            processId: data.process_id ? String(data.process_id) : "",
-            version: data.version || "1.0",
-            type: data.type || "unknown",
-            url: data.url || "#",
-            description: data.description || "",
-          };
-          setDoc(normalized);
-          setFormData({ name: normalized.name, processId: normalized.processId, description: normalized.description });
+
+          setDoc(data);
+          if (data.versions && data.versions.length > 0) {
+            setLatestVersion(data.versions[0]);
+          }
+
+          setFormData({ name: data.name, processId: data.process_id || "", description: data.description || "" });
 
           const resProc = await fetch(`/api/processes`);
           if (resProc.ok) {
-            const procs = await resProc.json();
-            setProcesses(Array.isArray(procs) ? procs : []);
+            setProcesses(await resProc.json());
           }
         } catch (e: any) {
           setError(e?.message || "Erreur inconnue");
@@ -74,16 +67,10 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      setPendingFile(null);
-      return;
-    }
+    if (!file) return;
 
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("Fichier trop volumineux", {
-        description: "La taille du fichier ne doit pas dépasser 20 Mo.",
-      });
-      setPendingFile(null);
+      toast.error("Fichier trop volumineux", { description: "La taille du fichier ne doit pas dépasser 20 Mo." });
       return;
     }
     setPendingFile(file);
@@ -94,7 +81,10 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       toast.error('Veuillez sélectionner un fichier');
       return;
     }
-
+    if (!newVersion) {
+      toast.error('Le champ version est obligatoire.');
+      return;
+    }
     if (!user?.id) {
       toast.error('Erreur d\'authentification');
       return;
@@ -105,78 +95,33 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     try {
       const clientPayload = JSON.stringify({
         userId: user.id,
-        processId: formData.processId,
-        description: formData.description,
-        existingId: documentId,
-        fileName: pendingFile.name,
+        version: newVersion,
+        existingId: documentId, // Lier à ce document
+        fileName: doc.name, // Garder le nom original
         contentType: pendingFile.type,
         fileSize: pendingFile.size,
       });
 
-      const newBlob = await upload(pendingFile.name, pendingFile, {
+      await upload(pendingFile.name, pendingFile, {
         access: 'public',
         handleUploadUrl: '/api/uploads',
         clientPayload,
       });
 
-      setDoc((prev: any) => ({
-        ...prev,
-        name: pendingFile.name,
-        version: (parseFloat(prev.version || "1.0") + 0.1).toFixed(1),
-        type: pendingFile.type,
-        size: pendingFile.size,
-        url: newBlob.url,
-        uploadedAt: new Date(),
-      }));
-      setFormData(prev => ({ ...prev, name: pendingFile.name }));
+      toast.success("✅ Nouvelle version téléversée avec succès.");
       setPendingFile(null);
-
-      toast.success("✅ Le document a bien été téléversé avec succès.");
-      router.refresh();
+      setNewVersion("");
+      router.refresh(); // Recharger les données pour voir la nouvelle version
 
     } catch (error) {
-      console.error('❌ ERREUR lors de l\'upload:', error);
-      setPendingFile(null);
       toast.error("❌ Une erreur est survenue pendant le téléversement.", {
         description: (error as Error).message,
       });
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
-
-  if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Vérification de l'authentification...</span>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">Vous n'êtes pas authentifié.</p>
-        <Button onClick={() => router.push('/')}>Se connecter</Button>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement du document...</span></div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-8"><p className="text-red-500 mb-4">Erreur: {error}</p><Button onClick={() => router.refresh()}>Réessayer</Button></div>;
-  }
-
-  if (!doc) {
-    return <div className="text-center py-8"><p className="text-slate-500">Document non trouvé</p></div>;
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -192,12 +137,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
           processId: formData.processId ? Number(formData.processId) : null,
         }),
       });
-      if (!response.ok) {
-        throw new Error("Erreur lors de la sauvegarde du document");
-      }
-      toast.success("Modifications enregistrées", { description: "Le document a été mis à jour." });
-      router.push(`/documents/${documentId}`);
+      if (!response.ok) throw new Error("Erreur lors de la sauvegarde des informations");
+
+      toast.success("Modifications enregistrées");
       router.refresh();
+
     } catch (err) {
       toast.error("Erreur", { description: (err as Error).message });
     } finally {
@@ -205,97 +149,91 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
     }
   };
 
+  if (isAuthLoading || loading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /><span className="ml-2">Chargement...</span></div>;
+  }
+  if (error) {
+    return <div className="text-center py-8"><p className="text-red-500 mb-4">Erreur: {error}</p></div>;
+  }
+  if (!doc) {
+    return <div className="text-center py-8"><p>Document non trouvé</p></div>;
+  }
+
   return (
     <div className="space-y-6">
        <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()}><ArrowLeft className="h-4 w-4 mr-2" />Retour</Button>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Modifier le document</h1>
-          <p className="text-slate-600 mt-1">{doc.name}</p>
-        </div>
+        <h1 className="text-3xl font-bold text-slate-800">Modifier le document</h1>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-800">Informations du document</CardTitle>
-            <CardDescription>Modifiez les métadonnées du document</CardDescription>
+            <CardTitle>Informations du document</CardTitle>
+            <CardDescription>Modifiez le nom, la description ou le processus associé.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><Label htmlFor="name">Nom du document</Label><Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
               <div>
                 <Label htmlFor="processId">Processus associé</Label>
-                <select id="processId" value={formData.processId} onChange={(e) => setFormData({ ...formData, processId: e.target.value })} className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md text-sm">
+                <select id="processId" value={formData.processId} onChange={(e) => setFormData({ ...formData, processId: e.target.value })} className="w-full mt-1 px-3 py-2 border rounded-md text-sm">
                   <option value="">Sélectionner un processus</option>
                   {processes.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
                 </select>
               </div>
               <div><Label htmlFor="description">Description</Label><Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} /></div>
               <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={isSaving || isUploading} className="bg-slate-800 hover:bg-slate-700">
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSaving ? "Enregistrement..." : "Enregistrer"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => router.back()}>Annuler</Button>
+                <Button type="submit" disabled={isSaving || isUploading}>{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Enregistrer</Button>
               </div>
             </form>
           </CardContent>
         </Card>
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-800">Gestion des versions</CardTitle>
-            <CardDescription>Téléchargez une nouvelle version du document</CardDescription>
+            <CardTitle>Gestion des versions</CardTitle>
+            <CardDescription>Téléchargez une nouvelle version du document.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-slate-600">
-              <p>Version actuelle: <span className="font-medium">{doc.version}</span></p>
-              <p>Dernière modification: {doc.uploadedAt.toLocaleDateString("fr-FR")}</p>
+            {latestVersion && (
+              <div className="text-sm">
+                <p>Version actuelle: <span className="font-medium">{latestVersion.version}</span></p>
+                <p>Dernière modification: {new Date(latestVersion.uploaded_at).toLocaleDateString("fr-FR")}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="newVersion">Nouvelle Version *</Label>
+              <Input
+                id="newVersion"
+                value={newVersion}
+                onChange={(e) => setNewVersion(e.target.value)}
+                placeholder="Ex: 1.1, 2024-Q2..."
+                disabled={isUploading}
+              />
+              {!newVersion && pendingFile && <p className="text-red-500 text-xs mt-1">Le champ version est obligatoire.</p>}
             </div>
 
             {!pendingFile ? (
               <div
-                className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors"
-                onClick={() => !isUploading && !isSaving && fileInputRef.current?.click()}
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50"
+                onClick={() => !isUploading && fileInputRef.current?.click()}
               >
                 <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                <Label htmlFor="version-upload" className="text-sm text-slate-600 mb-3 cursor-pointer">
-                  Télécharger une nouvelle version
-                </Label>
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  id="version-upload"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                  onChange={handleFileSelected}
-                  disabled={isUploading || isSaving}
-                />
+                <p>Télécharger une nouvelle version</p>
+                <Input ref={fileInputRef} type="file" className="hidden" id="version-upload" onChange={handleFileSelected} disabled={isUploading} />
               </div>
             ) : (
               <div className="border-2 border-dashed border-green-300 bg-green-50 rounded-lg p-6 text-center">
-                <p className="text-sm text-green-700 mb-3">Fichier sélectionné :</p>
-                <p className="font-medium text-green-800">{pendingFile.name}</p>
+                <p className="font-medium">{pendingFile.name}</p>
                 <div className="mt-4 flex justify-center gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleUploadNewVersion}
-                    disabled={isUploading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUploading ? "Téléversement..." : "Confirmer"}
+                  <Button onClick={handleUploadNewVersion} disabled={isUploading || !newVersion}>
+                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Confirmer
                   </Button>
-                  <Button variant="ghost" onClick={() => setPendingFile(null)}>Annuler</Button>
+                  <Button variant="ghost" onClick={() => { setPendingFile(null); if(fileInputRef.current) fileInputRef.current.value = ""; }}>Annuler</Button>
                 </div>
               </div>
             )}
-
-            <div className="text-xs text-slate-500">
-              <p>• La nouvelle version remplacera la version actuelle.</p>
-              <p>• L'ancienne version sera conservée dans l'historique.</p>
-              <p>• Formats acceptés: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG.</p>
-              <p>• Taille maximale du fichier : 20 Mo.</p>
-            </div>
           </CardContent>
         </Card>
       </div>
