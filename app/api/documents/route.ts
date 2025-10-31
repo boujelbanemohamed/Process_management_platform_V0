@@ -7,8 +7,8 @@ function getSql() {
   return neon(url)
 }
 
-// Fonction pour initialiser le schéma de la base de données pour les documents
 async function initSchema(sql: any) {
+  // ... (le code d'initialisation du schéma reste le même)
   await sql`
     CREATE TABLE IF NOT EXISTS documents (
       id BIGSERIAL PRIMARY KEY,
@@ -21,7 +21,6 @@ async function initSchema(sql: any) {
       created_by BIGINT REFERENCES users(id)
     )
   `
-
   await sql`
     CREATE TABLE IF NOT EXISTS document_versions (
       id BIGSERIAL PRIMARY KEY,
@@ -34,13 +33,10 @@ async function initSchema(sql: any) {
       uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `
-
-  // Migrations douces pour s'assurer que les nouvelles colonnes/tables sont conformes
   await sql`ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id)`
   await sql`ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS type VARCHAR(100)`
   await sql`ALTER TABLE document_versions ADD COLUMN IF NOT EXISTS size BIGINT`
 }
-
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,9 +48,7 @@ export async function GET(request: NextRequest) {
     const sql = getSql()
     await initSchema(sql);
 
-    let rows: any[] = []
-
-    // Si un ID de document est fourni, récupérer le document et toutes ses versions
+    // Si un ID de document est fourni, retourner le document et ses versions
     if (id) {
       const docResult = await sql`
         SELECT d.*, u.name as created_by_name
@@ -78,40 +72,55 @@ export async function GET(request: NextRequest) {
         ...docResult[0],
         versions: versionsResult,
       };
-
       return NextResponse.json(documentWithVersions)
     }
 
-    // Logique existante pour lister les documents (simplifiée pour retourner la dernière version)
-    // NOTE: Cette partie devra être adaptée pour afficher correctement les listes
-    const listQuery = `
-      SELECT d.id, d.name, d.description, d.process_id,
-             dv.version, dv.uploaded_at, u.name as uploaded_by_name,
-             p.name as process_name
-      FROM documents d
-      JOIN (
-        SELECT document_id, MAX(uploaded_at) as last_upload
-        FROM document_versions
-        GROUP BY document_id
-      ) latest_version ON d.id = latest_version.document_id
-      JOIN document_versions dv ON d.id = dv.document_id AND dv.uploaded_at = latest_version.last_upload
-      LEFT JOIN users u ON dv.uploaded_by = u.id
-      LEFT JOIN processes p ON d.process_id = p.id
-      ${processId ? `WHERE d.process_id = ${Number(processId)}` : ''}
-      ${projectId ? `WHERE d.project_id = ${Number(projectId)} AND d.link_type = 'project'` : ''}
-      ORDER BY dv.uploaded_at DESC
-    `
-    rows = await sql.unsafe(listQuery);
+    // Sinon, construire la requête pour la liste
+    let whereClause = "";
+    if (processId) {
+      whereClause = `WHERE d.process_id = ${Number(processId)}`;
+    } else if (projectId) {
+      whereClause = `WHERE d.project_id = ${Number(projectId)} AND d.link_type = 'project'`;
+    }
 
-    return NextResponse.json(rows)
+    // Requête pour obtenir la dernière version de chaque document
+    const listQuery = `
+      SELECT
+        d.id,
+        d.name,
+        d.description,
+        d.process_id,
+        dv.version,
+        dv.uploaded_at,
+        dv.type,
+        u.name as uploaded_by_name
+      FROM documents d
+      INNER JOIN (
+          SELECT
+              document_id,
+              MAX(uploaded_at) as max_uploaded_at
+          FROM document_versions
+          GROUP BY document_id
+      ) latest_dv ON d.id = latest_dv.document_id
+      INNER JOIN document_versions dv ON dv.document_id = latest_dv.document_id AND dv.uploaded_at = latest_dv.max_uploaded_at
+      LEFT JOIN users u ON dv.uploaded_by = u.id
+      ${whereClause}
+      ORDER BY dv.uploaded_at DESC
+    `;
+
+    const rows = await sql.unsafe(listQuery);
+
+    // S'assurer de toujours retourner un tableau
+    return NextResponse.json(Array.isArray(rows) ? rows : []);
+
   } catch (error) {
     console.error("Error fetching documents:", error)
-    return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 })
+    // S'assurer de renvoyer un tableau vide en cas d'erreur pour éviter le crash du client
+    return NextResponse.json([], { status: 500 })
   }
 }
 
-// Le POST et le PUT seront gérés par /api/uploads, qui crée le document et la première version.
-// On garde le PUT ici pour les mises à jour de métadonnées du document principal.
+// ... (Le reste du fichier PUT, DELETE reste inchangé)
 export async function PUT(request: NextRequest) {
   try {
     const { id, name, description, processId } = await request.json()
