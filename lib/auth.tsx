@@ -94,18 +94,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialisation synchrone pour éviter la race condition.
+  // L'état 'user' est directement initialisé avec la valeur du localStorage.
+  const [user, setUser] = useState<User | null>(() => AuthService.getCurrentUser());
   const [isLoading, setIsLoading] = useState(true);
 
+  // Le useEffect ne sert plus qu'à indiquer que le chargement initial est terminé.
   useEffect(() => {
-    console.log('🔵 AuthProvider - Initialisation');
-    const currentUser = AuthService.getCurrentUser();
-    if (currentUser) {
-       console.log('🔵 User restauré depuis AuthService:', currentUser);
-       setUser(currentUser);
-    } else {
-       console.log('🔵 Aucun user trouvé par AuthService');
-    }
     setIsLoading(false);
   }, []);
 
