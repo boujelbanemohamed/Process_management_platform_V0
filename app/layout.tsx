@@ -7,7 +7,6 @@ import { Toaster } from "react-hot-toast"
 import "./globals.css"
 import { Suspense } from "react"
 import { ClientLayout } from "@/components/ClientLayout"
-import { Sidebar } from "@/components/layout/sidebar" // Assurez-vous que le chemin est correct
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,15 +29,10 @@ export default function RootLayout({
       <body className={`font-sans ${inter.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <ClientLayout>
-            <div className="flex h-screen">
-              <Sidebar />
-              <main className="flex-1 flex flex-col overflow-y-auto">
-                <Suspense fallback={null}>
-                  {children}
-                  <Toaster />
-                </Suspense>
-              </main>
-            </div>
+            <Suspense fallback={null}>
+              {children}
+              <Toaster />
+            </Suspense>
           </ClientLayout>
         </ThemeProvider>
         <Analytics />
