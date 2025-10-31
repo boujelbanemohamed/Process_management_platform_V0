@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent, type ChangeEvent, useRef } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { upload } from '@vercel/blob/client';
@@ -18,7 +18,6 @@ interface DocumentEditFormProps {
 
 export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [doc, setDoc] = useState<any | null>(null);
   const [processes, setProcesses] = useState<any[]>([]);
@@ -35,19 +34,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   });
 
   useEffect(() => {
-    console.log('🟣 Composant EditDocument monté');
-    console.log('🟣 User au chargement:', user);
-    console.log('🟣 isLoading:', isAuthLoading);
-  }, []);
-
-  useEffect(() => {
-    console.log('🟣 User a changé:', user);
-    console.log('🟣 isLoading a changé:', isAuthLoading);
-  }, [user, isAuthLoading]);
-
-  useEffect(() => {
     // Ne charge les données du document que si l'utilisateur est authentifié.
-    // La vérification !isAuthLoading && user garantit que nous avons un état d'auth final.
     if (!isAuthLoading && user) {
       const load = async () => {
         try {
@@ -83,21 +70,18 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       };
       load();
     }
-  }, [documentId, user, isAuthLoading]); // Dépend de l'état d'authentification
+  }, [documentId, user, isAuthLoading]);
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log('📎 Fichier sélectionné:', file);
     if (!file) {
       setPendingFile(null);
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast({
-        title: "Fichier trop volumineux",
+      toast.error("Fichier trop volumineux", {
         description: "La taille du fichier ne doit pas dépasser 20 Mo.",
-        variant: "destructive",
       });
       setPendingFile(null);
       return;
@@ -106,25 +90,16 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   };
 
   const handleUploadNewVersion = async () => {
-    console.log('🟢 === DÉBUT handleUploadNewVersion ===');
-    console.log('📁 Fichier en attente:', pendingFile);
-    console.log('👤 User:', user);
-    console.log('👤 User ID:', user?.id);
-
     if (!pendingFile) {
-      console.log('❌ ERREUR: Aucun fichier sélectionné');
-      alert('Veuillez sélectionner un fichier');
+      toast.error('Veuillez sélectionner un fichier');
       return;
     }
 
     if (!user?.id) {
-      console.log('❌ ERREUR: User ID manquant');
-      console.log('User complet:', JSON.stringify(user));
-      alert('Erreur d\'authentification');
+      toast.error('Erreur d\'authentification');
       return;
     }
 
-    console.log('✅ Validations OK - Préparation de l\'upload');
     setIsUploading(true);
 
     try {
@@ -138,13 +113,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         fileSize: pendingFile.size,
       });
 
-      console.log('📤 Envoi de la requête...');
       const newBlob = await upload(pendingFile.name, pendingFile, {
         access: 'public',
         handleUploadUrl: '/api/uploads',
         clientPayload,
       });
-      console.log('📥 Réponse reçue:', newBlob);
 
       setDoc((prev: any) => ({
         ...prev,
@@ -158,17 +131,14 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       setFormData(prev => ({ ...prev, name: pendingFile.name }));
       setPendingFile(null);
 
-      console.log('✅ Upload réussi:', newBlob);
-      toast({ title: "✅ Le document a bien été téléversé avec succès." });
+      toast.success("✅ Le document a bien été téléversé avec succès.");
       router.refresh();
 
     } catch (error) {
       console.error('❌ ERREUR lors de l\'upload:', error);
       setPendingFile(null);
-      toast({
-        title: "Échec de l'upload",
+      toast.error("❌ Une erreur est survenue pendant le téléversement.", {
         description: (error as Error).message,
-        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
@@ -176,10 +146,8 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
         fileInputRef.current.value = "";
       }
     }
-    console.log('🟢 === FIN handleUploadNewVersion ===');
   };
 
-  // Logique de rendu améliorée
   if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -190,14 +158,10 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   }
 
   if (!user) {
-    console.log('❌ Pas de user après loading - Redirection vers la page de connexion');
-    // Idéalement, utiliser un composant Redirect ou le router de Next.js
-    // Pour cet exemple, un simple message suffit.
-    // router.push('/login'); // Décommenter pour une redirection automatique
     return (
       <div className="text-center py-8">
         <p className="text-red-500 mb-4">Vous n'êtes pas authentifié.</p>
-        <Button onClick={() => router.push('/login')}>Se connecter</Button>
+        <Button onClick={() => router.push('/')}>Se connecter</Button>
       </div>
     );
   }
@@ -213,7 +177,6 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
   if (!doc) {
     return <div className="text-center py-8"><p className="text-slate-500">Document non trouvé</p></div>;
   }
-
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -232,11 +195,11 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       if (!response.ok) {
         throw new Error("Erreur lors de la sauvegarde du document");
       }
-      toast({ title: "Modifications enregistrées", description: "Le document a été mis à jour." });
+      toast.success("Modifications enregistrées", { description: "Le document a été mis à jour." });
       router.push(`/documents/${documentId}`);
       router.refresh();
     } catch (err) {
-      toast({ title: "Erreur", description: (err as Error).message, variant: "destructive" });
+      toast.error("Erreur", { description: (err as Error).message });
     } finally {
       setIsSaving(false);
     }
@@ -244,7 +207,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()}><ArrowLeft className="h-4 w-4 mr-2" />Retour</Button>
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Modifier le document</h1>
