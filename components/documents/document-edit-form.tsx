@@ -159,7 +159,7 @@ export function DocumentEditForm({ documentId }: DocumentEditFormProps) {
       setPendingFile(null);
 
       console.log('✅ Upload réussi:', newBlob);
-      toast({ title: "Nouvelle version téléversée", description: `${pendingFile.name} a été importé(e) avec succès.` });
+      toast({ title: "✅ Le document a bien été téléversé avec succès." });
       router.refresh();
 
     } catch (error) {
