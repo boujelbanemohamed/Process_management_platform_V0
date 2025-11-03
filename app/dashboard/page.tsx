@@ -29,23 +29,29 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       
-      const [processesRes, documentsRes, usersRes, reportsRes, accessLogsRes] = await Promise.all([
-        fetch('/api/processes'),
-        fetch('/api/documents'),
-        fetch('/api/users'),
-        fetch('/api/reports'),
-        fetch('/api/access-logs')
-      ])
+      // Pour éviter ERR_INSUFFICIENT_RESOURCES, on charge seulement les données essentielles.
+      const [processesRes, documentsRes] = await Promise.all([
+        fetch('/api/processes', { cache: 'no-store' }),
+        fetch('/api/documents', { cache: 'no-store' }),
+        // Les appels suivants sont temporairement désactivés pour améliorer la performance.
+        // fetch('/api/users', { cache: 'no-store' }),
+        // fetch('/api/reports', { cache: 'no-store' }),
+        // fetch('/api/access-logs', { cache: 'no-store' })
+      ]);
       
-      const [processes, documents, users, reports, accessLogs] = await Promise.all([
+      const [processes, documents] = await Promise.all([
         processesRes.json(),
         documentsRes.json(),
-        usersRes.json(),
-        reportsRes.json(),
-        accessLogsRes.json()
-      ])
+      ]);
       
-      setData({ processes, documents, users, reports, accessLogs })
+      // On initialise les données non chargées avec des tableaux vides.
+      setData({
+        processes,
+        documents,
+        users: [],
+        reports: [],
+        accessLogs: []
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue')
       console.error('Error loading dashboard data:', err)
